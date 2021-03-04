@@ -91,11 +91,18 @@ def hsv_to_rgb(h, s, v):
         return v, p, q
 
 
-def pixel_on(v):
+def pixel_on(v, hue='yellow'):
     '''
     slightly yellow. v is velocity, between 0 and 127
     '''
-    r, g, b = hsv_to_rgb(50, .53, v / 127)
+    if hue == 'yellow':
+        h = 48
+        s = .90
+    else:
+        h = 48
+        s = .90
+
+    r, g, b = hsv_to_rgb(h, s, v / 127)
     return int(r), int(g), int(b)
 
 
@@ -178,9 +185,8 @@ def init():
 #           INIT
 # -------------------------
 init()
-print("Midi in and out")
-print("Default output channel:", midi.out_channel + 1)  # DAWs start at 1
-print("Listening on input channels:", tuple([c + 1 for c in midi.in_channel]))
+print("Output Channel:", midi.out_channel + 1)  # DAWs start at 1
+print("Input Channels:", tuple([c + 1 for c in midi.in_channel]))
 
 # -------------------------
 #         RUNNING
