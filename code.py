@@ -40,12 +40,32 @@ midi = adafruit_midi.MIDI(
 )
 
 UPPER_LEFT = 40
-grid = [list(range(n, n+8)) for n in
-        range(UPPER_LEFT, UPPER_LEFT + 64, 8)]
-flat_grid = [i for row in grid for i in row]
-
 V = 100  # default velocity
 major_chord = [0, 4, 10]  # for debugging
+
+
+def get_grid(upper_left, cc2=False):
+    # Build grid for Cheat Codes 2 (monome norns)
+    if cc2:
+        def get_quad(ul):
+            return [list(range(n, n+4)) for n in range(ul, ul + 16, 4)]
+
+        quad_corners = list(range(upper_left, upper_left + 64, 16))
+        quads = [get_quad(ul) for ul in quad_corners]
+
+        quad_l = quads[0] + quads[2]
+        quad_r = quads[1] + quads[3]
+
+        grid = [l + r for l, r in zip(quad_l, quad_r)]
+
+        print(f"Using Cheat Codes 2 grid. Corners: {quad_corners}")
+
+    # build normal grid
+    else:
+        grid = [list(range(n, n + 8)) for n in
+                range(upper_left, upper_left + 64, 8)]
+
+    return grid
 
 
 def note_to_xy(note):
@@ -166,6 +186,12 @@ def button(x, y, edge):
 
 
 def init():
+    global grid
+    global flat_grid
+
+    grid = get_grid(UPPER_LEFT, True)
+    flat_grid = [i for row in grid for i in row]
+
     for y in range(8):
         for x in range(8):
             # activate rising edge events
