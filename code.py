@@ -39,9 +39,8 @@ midi = adafruit_midi.MIDI(
     out_channel=out_channel,
 )
 
-UPPER_LEFT = 40  # If 40, quad corners are [40, 56, 72, 88]
+UPPER_LEFT = 40
 V = 100  # default velocity
-major_chord = [0, 4, 10]  # for debugging
 
 
 def get_grid(upper_left, cc2=False):
@@ -50,6 +49,7 @@ def get_grid(upper_left, cc2=False):
         def get_quad(ul):
             return [list(range(n, n+4)) for n in range(ul, ul + 16, 4)]
 
+        # If upper_left is 40, quad corners are [40, 56, 72, 88]
         quad_corners = list(range(upper_left, upper_left + 64, 16))
         quads = [get_quad(ul) for ul in quad_corners]
 
@@ -123,6 +123,7 @@ def pixel_on(v, hue='yellow'):
         s = .90
 
     r, g, b = hsv_to_rgb(h, s, v / 127)
+
     return int(r), int(g), int(b)
 
 
@@ -152,9 +153,9 @@ def button(x, y, edge):
     Parameters
     ----------
     x : int
-        column
+        grid column
     y : int
-        row
+        grid row
     edge : NeoTrellis EDGE event
         event
     '''
@@ -177,7 +178,7 @@ def init():
     global grid
     global flat_grid
 
-    grid = get_grid(UPPER_LEFT, True)
+    grid = get_grid(UPPER_LEFT)
     flat_grid = [i for row in grid for i in row]
 
     for y in range(8):
