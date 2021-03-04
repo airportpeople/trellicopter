@@ -6,18 +6,10 @@ import busio
 from adafruit_neotrellis.neotrellis import NeoTrellis
 from adafruit_neotrellis.multitrellis import MultiTrellis
 
-# TimingClock is worth importing first if present
+# TimingClock is worth importing first, if present
 # from adafruit_midi.timing_clock import TimingClock
-# from adafruit_midi.channel_pressure import ChannelPressure
-# from adafruit_midi.control_change import ControlChange
 from adafruit_midi.note_off import NoteOff
 from adafruit_midi.note_on import NoteOn
-# from adafruit_midi.pitch_bend import PitchBend
-# from adafruit_midi.polyphonic_key_pressure import PolyphonicKeyPressure
-# from adafruit_midi.program_change import ProgramChange
-# from adafruit_midi.start import Start
-# from adafruit_midi.stop import Stop
-# from adafruit_midi.system_exclusive import SystemExclusive
 from adafruit_midi.midi_message import MIDIUnknownEvent
 
 
@@ -25,8 +17,10 @@ from adafruit_midi.midi_message import MIDIUnknownEvent
 i2c_bus = busio.I2C(SCL, SDA)
 
 trelli = [
-    [NeoTrellis(i2c_bus, False, addr=0x2E), NeoTrellis(i2c_bus, False, addr=0x30)],
-    [NeoTrellis(i2c_bus, False, addr=0x31), NeoTrellis(i2c_bus, False, addr=0x2F)]
+    [NeoTrellis(i2c_bus, False, addr=0x2E),
+     NeoTrellis(i2c_bus, False, addr=0x30)],
+    [NeoTrellis(i2c_bus, False, addr=0x31),
+     NeoTrellis(i2c_bus, False, addr=0x2F)]
 ]
 
 trellis = MultiTrellis(trelli)
@@ -34,18 +28,33 @@ trellis = MultiTrellis(trelli)
 # some color definitions
 OFF = (0, 0, 0)
 
+# these are base 0 (so, MIDI channel 1 is actually 0 here)
+in_channels = (1, 2, 3)
+out_channel = 0
+
 midi = adafruit_midi.MIDI(
     midi_in=usb_midi.ports[0],
     midi_out=usb_midi.ports[1],
-    in_channel=(1, 2, 3),
-    out_channel=0,
+    in_channel=in_channels,
+    out_channel=out_channel,
 )
 
 UPPER_LEFT = 40
 grid = [list(range(n, n+8)) for n in
         range(UPPER_LEFT, UPPER_LEFT + 64, 8)]
+flat_grid = [i for row in grid for i in row]
+
 V = 100  # default velocity
 major_chord = [0, 4, 10]  # for debugging
+
+
+def note_to_xy(note):
+    assert note in flat_grid
+
+    loc = flat_grid.index(note)
+    x = loc % 8
+    y = loc // 8
+    return x, y
 
 
 def hsv_to_rgb(h, s, v):
@@ -91,25 +100,34 @@ def pixel_on(v):
 
 
 def note_on():
-    print(
-        "Playing major chord with root",
-        msg_in.note,
-        "from channel",
-        msg_in.channel + 1,
-    )
+    print(f"IN -- "
+          f"C: {msg_in.channel + 1}\t"
+          f"N: {msg_in.note}\t"
+          f"V: {msg_in.velocity}")
+
+    # light up square
+    if msg_in.note in flat_grid:
+        x, y = note_to_xy(msg_in.note)
+        trellis.color(x, y, pixel_on(30))
+
+    # confirm with some sound :)
     for offset in major_chord:
         new_note = msg_in.note + offset
         if 0 <= new_note <= 127:
             midi.send(NoteOn(new_note, msg_in.velocity))
-            trellis.color(3, 3, pixel_on(30))
 
 
 def note_off():
+    # shut off square
+    if msg_in.note in flat_grid:
+        x, y = note_to_xy(msg_in.note)
+        trellis.color(x, y, OFF)
+
+    # remove sound
     for offset in major_chord:
         new_note = msg_in.note + offset
         if 0 <= new_note <= 127:
             midi.send(NoteOff(new_note, 0x00))
-            trellis.color(3, 3, OFF)
 
 
 def button(x, y, edge):
@@ -128,8 +146,12 @@ def button(x, y, edge):
     # Recently pressed
     if edge == NeoTrellis.EDGE_RISING:
         midi.send(NoteOn(grid[y][x], V))
-        print(f"Sending note {grid[y][x]} at velocity {V}")
+        print(f"OUT -- "
+              f"C: {out_channel + 1}\t"
+              f"N: {grid[y][x]}\t"
+              f"V: {V}")
         trellis.color(x, y, pixel_on(30))
+
     # Recently released
     elif edge == NeoTrellis.EDGE_FALLING:
         midi.send(NoteOff(grid[y][x], 0x00))
