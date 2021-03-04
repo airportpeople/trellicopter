@@ -39,7 +39,7 @@ midi = adafruit_midi.MIDI(
     out_channel=out_channel,
 )
 
-UPPER_LEFT = 40
+UPPER_LEFT = 40  # If 40, quad corners are [40, 56, 72, 88]
 V = 100  # default velocity
 major_chord = [0, 4, 10]  # for debugging
 
@@ -137,24 +137,12 @@ def note_on():
         x, y = note_to_xy(msg_in.note)
         trellis.color(x, y, pixel_on(30))
 
-    # confirm with some sound :)
-    for offset in major_chord:
-        new_note = msg_in.note + offset
-        if 0 <= new_note <= 127:
-            midi.send(NoteOn(new_note, msg_in.velocity))
-
 
 def note_off():
     # shut off square
     if msg_in.note in flat_grid:
         x, y = note_to_xy(msg_in.note)
         trellis.color(x, y, OFF)
-
-    # remove sound
-    for offset in major_chord:
-        new_note = msg_in.note + offset
-        if 0 <= new_note <= 127:
-            midi.send(NoteOff(new_note, 0x00))
 
 
 def button(x, y, edge):
@@ -238,7 +226,7 @@ while True:
 
     # MIDI IN: Any other MIDI Event
     elif msg_in is not None:
-        midi.send(msg_in)
+        print("MIDI Message ", msg_in)
 
     # Sync (the trellis can only be read every 17 milliseconds or so)
     trellis.sync()
