@@ -13,6 +13,9 @@ from adafruit_midi.note_on import NoteOn
 from adafruit_midi.midi_message import MIDIUnknownEvent
 
 
+# -------------------------
+#          SETUP
+# -------------------------
 # create the i2c object for the trellis
 i2c_bus = busio.I2C(SCL, SDA)
 
@@ -28,9 +31,9 @@ trellis = MultiTrellis(trelli)
 # some color definitions
 OFF = (0, 0, 0)
 
-# these are base 0 (so, MIDI channel 1 is actually 0 here)
-in_channels = (1, 2, 3)
-out_channel = 0
+# these are base 0
+in_channels = (0,)  # listening on channel 1
+out_channel = 1  # sending through channel 2
 
 midi = adafruit_midi.MIDI(
     midi_in=usb_midi.ports[0],
@@ -43,9 +46,8 @@ UPPER_LEFT = 40
 V = 100  # default velocity
 
 
-def get_grid(upper_left, cc2=False):
-    # Build grid for Cheat Codes 2 (monome norns)
-    if cc2:
+def get_grid(upper_left, quad=False):
+    if quad:
         def get_quad(ul):
             return [list(range(n, n+4)) for n in range(ul, ul + 16, 4)]
 
@@ -58,7 +60,7 @@ def get_grid(upper_left, cc2=False):
 
         grid = [l + r for l, r in zip(quad_l, quad_r)]
 
-        print(f"Using Cheat Codes 2 grid. Corners: {quad_corners}")
+        print(f"Using quad-grid with corners: {quad_corners}")
 
     # build normal grid
     else:
@@ -80,8 +82,20 @@ def note_to_xy(note):
 def hsv_to_rgb(h, s, v):
     '''
     HSV to RGB. (`h` is in degrees).
-
     E.g., hsv_to_rgb(50, .53, .98) = (249.9, 227, 117)
+
+    Parameters
+    ----------
+    h : int
+        hue
+    s : float
+        saturation
+    v : float
+        brightness
+
+    Returns
+    -------
+    (tuple) r, g, b
     '''
     h /= 360
     if s == 0.0:
@@ -127,26 +141,31 @@ def pixel_on(v, hue='yellow'):
     return int(r), int(g), int(b)
 
 
-def note_on():
-    print(f"IN -- "
+def note_on(light=True):
+    print(f"IN (on) -- "
           f"C: {msg_in.channel + 1}\t"
           f"N: {msg_in.note}\t"
           f"V: {msg_in.velocity}")
 
-    # light up square
-    if msg_in.note in flat_grid:
+    # square light on
+    if (msg_in.note in flat_grid) and light:
         x, y = note_to_xy(msg_in.note)
-        trellis.color(x, y, pixel_on(30))
+        trellis.color(x, y, pixel_on(msg_in.velocity))
 
 
-def note_off():
-    # shut off square
-    if msg_in.note in flat_grid:
+def note_off(light=True):
+    print(f"IN (off) -- "
+          f"C: {msg_in.channel + 1}\t"
+          f"N: {msg_in.note}\t"
+          f"V: {msg_in.velocity}")
+
+    # square light off
+    if (msg_in.note in flat_grid) and light:
         x, y = note_to_xy(msg_in.note)
         trellis.color(x, y, OFF)
 
 
-def button(x, y, edge):
+def button(x, y, edge, light=False):
     '''
     Actions to take for each edge event on the grid
 
@@ -158,20 +177,30 @@ def button(x, y, edge):
         grid row
     edge : NeoTrellis EDGE event
         event
+    light : bool
+        activate pixel light on edge events
     '''
     # Recently pressed
     if edge == NeoTrellis.EDGE_RISING:
         midi.send(NoteOn(grid[y][x], V))
-        print(f"OUT -- "
+        print(f"OUT (on) -- "
               f"C: {out_channel + 1}\t"
               f"N: {grid[y][x]}\t"
               f"V: {V}")
-        trellis.color(x, y, pixel_on(30))
+
+        if light:
+            trellis.color(x, y, pixel_on(V))
 
     # Recently released
     elif edge == NeoTrellis.EDGE_FALLING:
-        midi.send(NoteOff(grid[y][x], 0x00))
-        trellis.color(x, y, OFF)
+        midi.send(NoteOff(grid[y][x]))
+        print(f"OUT (off) -- "
+              f"C: {out_channel + 1}\t"
+              f"N: {grid[y][x]}\t"
+              f"V: 0")
+
+        if light:
+            trellis.color(x, y, OFF)
 
 
 def init():
@@ -191,7 +220,7 @@ def init():
             trellis.set_callback(x, y, button)
 
             # fanciness
-            trellis.color(x, y, pixel_on(30))
+            trellis.color(x, y, pixel_on(V))
             time.sleep(0.05)
             trellis.color(x, y, OFF)
 
@@ -201,7 +230,7 @@ def init():
 # -------------------------
 init()
 print("Output Channel:", midi.out_channel + 1)  # DAWs start at 1
-print("Input Channels:", tuple([c + 1 for c in midi.in_channel]))
+print("Input Channels:", [c + 1 for c in midi.in_channel])
 
 # -------------------------
 #         RUNNING
@@ -210,14 +239,13 @@ while True:
     msg_in = midi.receive()  # non-blocking read
 
     # MIDI IN: Note On
-    if isinstance(msg_in, NoteOn) and msg_in.velocity != 0:
+    if isinstance(msg_in, NoteOn) and (msg_in.velocity not in [0, None]):
         note_on()
 
     # MIDI IN: Note Off
     elif (
         isinstance(msg_in, NoteOff)
-        or isinstance(msg_in, NoteOn)
-        and msg_in.velocity == 0
+        or (isinstance(msg_in, NoteOn) and (msg_in.velocity in [0, None]))
     ):
         note_off()
 
