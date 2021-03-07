@@ -40,6 +40,7 @@ midi = adafruit_midi.MIDI(
     midi_out=usb_midi.ports[1],
     in_channel=in_channels,
     out_channel=out_channel,
+    in_buf_size=64
 )
 
 UPPER_LEFT = 40
@@ -60,7 +61,7 @@ def get_grid(upper_left, quad=False):
 
         grid = [l + r for l, r in zip(quad_l, quad_r)]
 
-        print(f"Using quad-grid with corners: {quad_corners}")
+        # print(f"Using quad-grid with corners: {quad_corners}")
 
     # build normal grid
     else:
@@ -142,10 +143,10 @@ def pixel_on(v, hue='yellow'):
 
 
 def note_on(light=True):
-    print(f"IN (on) -- "
-          f"C: {msg_in.channel + 1}\t"
-          f"N: {msg_in.note}\t"
-          f"V: {msg_in.velocity}")
+    # print(f"IN (on) -- "
+    #       f"C: {msg_in.channel + 1}\t"
+    #       f"N: {msg_in.note}\t"
+    #       f"V: {msg_in.velocity}")
 
     # square light on
     if (msg_in.note in flat_grid) and light:
@@ -154,10 +155,10 @@ def note_on(light=True):
 
 
 def note_off(light=True):
-    print(f"IN (off) -- "
-          f"C: {msg_in.channel + 1}\t"
-          f"N: {msg_in.note}\t"
-          f"V: {msg_in.velocity}")
+    # print(f"IN (off) -- "
+    #       f"C: {msg_in.channel + 1}\t"
+    #       f"N: {msg_in.note}\t"
+    #       f"V: {msg_in.velocity}")
 
     # square light off
     if (msg_in.note in flat_grid) and light:
@@ -183,10 +184,10 @@ def button(x, y, edge, light=False):
     # Recently pressed
     if edge == NeoTrellis.EDGE_RISING:
         midi.send(NoteOn(grid[y][x], V))
-        print(f"OUT (on) -- "
-              f"C: {out_channel + 1}\t"
-              f"N: {grid[y][x]}\t"
-              f"V: {V}")
+        # print(f"OUT (on) -- "
+        #       f"C: {out_channel + 1}\t"
+        #       f"N: {grid[y][x]}\t"
+        #       f"V: {V}")
 
         if light:
             trellis.color(x, y, pixel_on(V))
@@ -194,10 +195,10 @@ def button(x, y, edge, light=False):
     # Recently released
     elif edge == NeoTrellis.EDGE_FALLING:
         midi.send(NoteOff(grid[y][x]))
-        print(f"OUT (off) -- "
-              f"C: {out_channel + 1}\t"
-              f"N: {grid[y][x]}\t"
-              f"V: 0")
+        # print(f"OUT (off) -- "
+        #       f"C: {out_channel + 1}\t"
+        #       f"N: {grid[y][x]}\t"
+        #       f"V: 0")
 
         if light:
             trellis.color(x, y, OFF)
@@ -229,8 +230,8 @@ def init():
 #           INIT
 # -------------------------
 init()
-print("Output Channel:", midi.out_channel + 1)  # DAWs start at 1
-print("Input Channels:", [c + 1 for c in midi.in_channel])
+# print("Output Channel:", midi.out_channel + 1)  # DAWs start at 1
+# print("Input Channels:", [c + 1 for c in midi.in_channel])
 
 # -------------------------
 #         RUNNING
@@ -250,13 +251,12 @@ while True:
         note_off()
 
     # MIDI IN: Unknown MIDI Event
-    elif isinstance(msg_in, MIDIUnknownEvent):
-        print("Unknown MIDI event status ", msg_in.status)
+    # elif isinstance(msg_in, MIDIUnknownEvent):
+        # print("Unknown MIDI event status ", msg_in.status)
 
     # MIDI IN: Any other MIDI Event
-    elif msg_in is not None:
-        print("MIDI Message ", msg_in)
+    # elif msg_in is not None:
+        # print("MIDI Message ", msg_in)
 
-    # Sync (the trellis can only be read every 17 milliseconds or so)
     trellis.sync()
-    time.sleep(0.02)
+    time.sleep(0.02)  # try commenting this out if things are slow
