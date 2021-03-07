@@ -18,9 +18,9 @@ For development purposes, these are the steps to take with a new NeoTrellis grid
 
 ## Update and Install
 
-[Bootloader](https://learn.adafruit.com/adafruit-feather-m4-express-atsamd51/update-the-uf2-bootloader). You'll have to double tap the reset button (pretty quick-ish). Load the file, and let it reset to show the BOOT drive again.
+[Bootloader](https://learn.adafruit.com/adafruit-feather-m4-express-atsamd51/update-the-uf2-bootloader). You'll have to double tap the reset button (pretty quick-ish) to enter "boot mode". Load the most recent version of the bootloader, and let it reset to show the BOOT drive again.
 
-[CIRCUITPY](https://learn.adafruit.com/welcome-to-circuitpython/installing-circuitpython#start-the-uf2-bootloader-2977081-13). Start the Bootloader, load this file into the BOOT drive, and let it install. You'll see the CIRCUITPY drive show up when it's done.
+[CIRCUITPY](https://learn.adafruit.com/welcome-to-circuitpython/installing-circuitpython#download-the-latest-version-2977908-4). Download the most recent version of CIRCUITPY for your chip (Feather M4, likely). Start the Bootloader (above), load the UF2 file into the BOOT drive, and let it install. You'll see the CIRCUITPY drive show up when it's done.
 
 ## Accessing the REPL Serial Console
 
@@ -102,3 +102,26 @@ The credit for this really goes to [Jeremy Arnold](https://github.com/jaggednz) 
 - `midigrid? = yes`
 
 **Step 6:** Enjoy. Have fun. Smile :)
+
+# Alternative (Serial Port)
+
+Alternatively, you could use Steve's (okyeron's) [solution](https://github.com/okyeron/neotrellis-monome):
+
+*Note: This solution only works if you have a 64-grid, 8x8, with [grid addresses](https://learn.adafruit.com/adafruit-neotrellis/tiling) below:*
+
+```
+[
+    [0x2E, 0x30],
+    [0x31, 0x2F]
+]
+```
+*If your addresses are different, reach out to Steve and follow the rest of the instructions accordingly. He is incredibly helpful!*
+
+1. Download the [UF2 file](./neotrellis_f_m4_8x8.UF2) (or whichever one matches your addresses), and install it onto your system using the [bootloader](#update-and-install).
+2. Access your norns via WiFi using [SSH](https://monome.org/docs/norns/wifi-files/#ssh).
+3. Complete this fairly benign Norns hack, [here](https://github.com/okyeron/neotrellis-monome#norns-shield) (roughly, to allow Norns to recognize this device's serial number). **This needs to be done after every Norns Update.**
+4. Restart your Norns.
+5. Make sure that you've uninstalled *midigrid* in [maiden](https://monome.org/docs/norns/maiden/) (if you don't need it anymore), and that you've removed references to *'feather m4 express'* as a MIDI controller. `MAIN -> SYSTEM -> DEVICES -> MIDI -> select-and-change-to-"none"`.
+6. Also, make sure that your Norns is seeking out the right grid: `MAIN -> SYSTEM -> DEVICES -> GRID -> select-and-change-to-"neo-monome m4216124"`.
+7. (optional) If you're running something like Cheat Codes 2, you'll need to update the grid parameters there, and make sure `midigrid? = no`: `PARAMS -> GRID -> midigrid? = no`.
+8. Do music.
