@@ -26,7 +26,7 @@ Implementation Notes
 
 # imports
 
-__version__ = "1.1.4"
+__version__ = "1.1.5"
 __repo__ = "https://github.com/adafruit/Adafruit_CircuitPython_neotrellis.git"
 
 from time import sleep

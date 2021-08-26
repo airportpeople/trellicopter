@@ -18,7 +18,7 @@ Implementation Notes
 
 from .midi_message import MIDIMessage
 
-__version__ = "1.3.2"
+__version__ = "1.4.2"
 __repo__ = "https://github.com/adafruit/Adafruit_CircuitPython_MIDI.git"
 
 

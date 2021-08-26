@@ -45,7 +45,7 @@ except ImportError:
 
 from adafruit_bus_device.i2c_device import I2CDevice
 
-__version__ = "1.7.1"
+__version__ = "1.9.2"
 __repo__ = "https://github.com/adafruit/Adafruit_CircuitPython_seesaw.git"
 
 _STATUS_BASE = const(0x00)
@@ -61,6 +61,7 @@ _DAP_BASE = const(0x0C)
 _EEPROM_BASE = const(0x0D)
 _NEOPIXEL_BASE = const(0x0E)
 _TOUCH_BASE = const(0x0F)
+_ENCODER_BASE = const(0x11)
 
 _GPIO_DIRSET_BULK = const(0x02)
 _GPIO_DIRCLR_BULK = const(0x03)
@@ -108,6 +109,12 @@ _TOUCH_CHANNEL_OFFSET = const(0x10)
 
 _HW_ID_CODE = const(0x55)
 _EEPROM_I2C_ADDR = const(0x3F)
+
+_ENCODER_STATUS = const(0x00)
+_ENCODER_INTENSET = const(0x10)
+_ENCODER_INTENCLR = const(0x20)
+_ENCODER_POSITION = const(0x30)
+_ENCODER_DELTA = const(0x40)
 
 # TODO: update when we get real PID
 _CRICKIT_PID = const(9999)
@@ -221,6 +228,12 @@ class Seesaw:
             self.write(_GPIO_BASE, _GPIO_INTENSET, cmd)
         else:
             self.write(_GPIO_BASE, _GPIO_INTENCLR, cmd)
+
+    def get_GPIO_interrupt_flag(self, delay=0.008):
+        """Read and clear GPIO interrupts that have fired"""
+        buf = bytearray(4)
+        self.read(_GPIO_BASE, _GPIO_INTFLAG, buf, delay=delay)
+        return struct.unpack(">I", buf)[0]
 
     def analog_read(self, pin):
         """Read the value of an analog pin by number"""
@@ -355,6 +368,31 @@ class Seesaw:
             self.write(_TIMER_BASE, _TIMER_FREQ, cmd)
         else:
             raise ValueError("Invalid PWM pin")
+
+    def encoder_position(self, encoder=0):
+        """The current position of the encoder"""
+        buf = bytearray(4)
+        self.read(_ENCODER_BASE, _ENCODER_POSITION + encoder, buf)
+        return struct.unpack(">i", buf)[0]
+
+    def set_encoder_position(self, pos, encoder=0):
+        """Set the current position of the encoder"""
+        cmd = struct.pack(">i", pos)
+        self.write(_ENCODER_BASE, _ENCODER_POSITION + encoder, cmd)
+
+    def encoder_delta(self, encoder=0):
+        """The change in encoder position since it was last read"""
+        buf = bytearray(4)
+        self.read(_ENCODER_BASE, _ENCODER_DELTA + encoder, buf)
+        return struct.unpack(">i", buf)[0]
+
+    def enable_encoder_interrupt(self, encoder=0):
+        """Enable the interrupt to fire when the encoder changes position"""
+        self.write8(_ENCODER_BASE, _ENCODER_INTENSET + encoder, 0x01)
+
+    def disable_encoder_interrupt(self, encoder=0):
+        """Disable the interrupt from firing when the encoder changes"""
+        self.write8(_ENCODER_BASE, _ENCODER_INTENCLR + encoder, 0x01)
 
     # def enable_sercom_data_rdy_interrupt(self, sercom):
     #

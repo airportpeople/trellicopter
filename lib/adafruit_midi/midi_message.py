@@ -22,7 +22,7 @@ Implementation Notes
 
 """
 
-__version__ = "1.3.2"
+__version__ = "1.4.2"
 __repo__ = "https://github.com/adafruit/Adafruit_CircuitPython_MIDI.git"
 
 # From C3 - A and B are above G
@@ -89,7 +89,9 @@ class MIDIMessage:
     ENDSTATUS = None
 
     # Commonly used exceptions to save memory
-    _EX_VALUEERROR_OOR = ValueError("Out of range")
+    @staticmethod
+    def _raise_valueerror_oor():
+        raise ValueError("Out of range")
 
     # Each element is ((status, mask), class)
     # order is more specific masks first

@@ -41,7 +41,9 @@ screen /dev/tty.usbserial 9600,cs8,ixon
 
 To [leave](https://learn.adafruit.com/welcome-to-circuitpython/the-repl), press **Ctrl + D**. *Note: you may need to press **Ctrl + C** to stop whatever script is happening, if you like.*
 
-# MIDI and Editing Workflow
+# Setup Workflow
+
+**This repository is meant to emulate what is loaded on the trellicopter.**
 
 The current `code.py` file works to create a simple MIDI grid which sends MIDI on channel 1, and receives from channels 2, 3, and 4. When a MIDI message is received (within range), the respective button will light up.
 
@@ -49,7 +51,7 @@ I like to have my code edited in PyCharm. I'll have the IDE up along with an ope
 
 **Step 1:** Clone this repository (the *main* branch), and the [Adafruit Blinka](https://github.com/adafruit/Adafruit_Blinka) repo.
 
-**Step 2:** Get the most recent [Adafruit library](https://circuitpython.org/libraries) **for both `.py` and `.mpy` files** (these are two separate links on the linked page). On my computer, I save the entirety of these in `adafruit_py` and `adafruit_mpy` folders (respectively), just to keep track.
+**Step 2:** Get the most recent [Adafruit library](https://github.com/adafruit/Adafruit_CircuitPython_Bundle/releases/latest) **for both `.py` and `.mpy` files** (these will be two separate links). On my computer, I save the entirety of these in `adafruit_py` and `adafruit_mpy` folders (respectively), just to keep track.
 
 **Step 3:** The folders in `trellicopter/lib` come from `adafruit_py`, so that editing in PyCharm is friendly (you can set this as a "Source" in the IDE). I'm not very diligent, so you'll probably want to replace these folders with the updated version of them in your most recent downloaded `adafruit_py` folder (note, these are **.py** files). This includes
 

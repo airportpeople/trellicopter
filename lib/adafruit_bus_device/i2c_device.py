@@ -7,7 +7,7 @@
 ====================================================
 """
 
-__version__ = "5.0.5"
+__version__ = "5.0.6"
 __repo__ = "https://github.com/adafruit/Adafruit_CircuitPython_BusDevice.git"
 
 

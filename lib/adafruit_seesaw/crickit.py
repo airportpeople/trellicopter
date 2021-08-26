@@ -17,7 +17,7 @@ except ImportError:
         return x
 
 
-__version__ = "1.7.1"
+__version__ = "1.9.2"
 __repo__ = "https://github.com/adafruit/Adafruit_CircuitPython_seesaw.git"
 
 # The ordering here reflects the seesaw firmware pinmap for crickit,
