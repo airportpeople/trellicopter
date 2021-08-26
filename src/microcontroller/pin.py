@@ -10,14 +10,24 @@ if chip_id == ap_chip.ESP8266:
     from adafruit_blinka.microcontroller.esp8266.pin import *
 elif chip_id == ap_chip.STM32F405:
     from adafruit_blinka.microcontroller.stm32.stm32f405.pin import *
+elif chip_id == ap_chip.RP2040:
+    from adafruit_blinka.microcontroller.rp2040.pin import *
 elif chip_id == ap_chip.BCM2XXX:
     from adafruit_blinka.microcontroller.bcm283x.pin import *
 elif chip_id == ap_chip.DRA74X:
     from adafruit_blinka.microcontroller.dra74x.pin import *
 elif chip_id == ap_chip.AM33XX:
     from adafruit_blinka.microcontroller.am335x.pin import *
+elif chip_id == ap_chip.JH71x0:
+    from adafruit_blinka.microcontroller.starfive.JH71x0.pin import *
 elif chip_id == ap_chip.SUN8I:
     from adafruit_blinka.microcontroller.allwinner.h3.pin import *
+elif chip_id == ap_chip.H5:
+    from adafruit_blinka.microcontroller.allwinner.h5.pin import *
+elif chip_id == ap_chip.H6:
+    from adafruit_blinka.microcontroller.allwinner.h6.pin import *
+elif chip_id == ap_chip.H616:
+    from adafruit_blinka.microcontroller.allwinner.h616.pin import *
 elif chip_id == ap_chip.SAMA5:
     from adafruit_blinka.microcontroller.sama5.pin import *
 elif chip_id == ap_chip.T210:
@@ -43,7 +53,9 @@ elif chip_id == ap_chip.IMX6ULL:
 elif chip_id == ap_chip.HFU540:
     from adafruit_blinka.microcontroller.hfu540.pin import *
 elif chip_id == ap_chip.FT232H:
-    from adafruit_blinka.microcontroller.ft232h.pin import *
+    from adafruit_blinka.microcontroller.ftdi_mpsse.ft232h.pin import *
+elif chip_id == ap_chip.FT2232H:
+    from adafruit_blinka.microcontroller.ftdi_mpsse.ft2232h.pin import *
 elif chip_id == ap_chip.BINHO:
     from adafruit_blinka.microcontroller.nova.pin import *
 elif chip_id == ap_chip.LPC4330:
@@ -56,6 +68,10 @@ elif chip_id == ap_chip.A33:
     from adafruit_blinka.microcontroller.allwinner.a33.pin import *
 elif chip_id == ap_chip.RK3308:
     from adafruit_blinka.microcontroller.rockchip.rk3308.pin import *
+elif chip_id == ap_chip.RK3399:
+    from adafruit_blinka.microcontroller.rockchip.rk3399.pin import *
+elif chip_id == ap_chip.RK3328:
+    from adafruit_blinka.microcontroller.rockchip.rk3328.pin import *
 elif chip_id == ap_chip.MIPS24KC:
     from adafruit_blinka.microcontroller.atheros.ar9331.pin import *
 elif chip_id == ap_chip.MIPS24KEC:
@@ -66,5 +82,7 @@ elif chip_id == ap_chip.STM32MP157:
     from adafruit_blinka.microcontroller.stm32.stm32mp157.pin import *
 elif chip_id == ap_chip.MT8167:
     from adafruit_blinka.microcontroller.mt8167.pin import *
+elif chip_id == ap_chip.RP2040_U2IF:
+    from adafruit_blinka.microcontroller.rp2040_u2if.pin import *
 else:
     raise NotImplementedError("Microcontroller not supported: ", chip_id)
