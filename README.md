@@ -60,6 +60,8 @@ I like to have my code edited in PyCharm. I'll have the IDE up along with an ope
 - `adafruit_neotrellis`
 - `adafruit_seesaw`
 
+*You'll need to add whatever folders are required for the project you're working on.*
+
 **Step 4:** The folders in `trellicopter/src` come from the `Adafruit_Blinka` repo, i.e., the most recent mirror of the Trellis firmware. Copy-paste the contents of `Adafruit_Blinka/src` into `trellicopter/src`. Again, this will make editing in PyCharm kinda nice.
 
 **Step 5:** In your CIRCUITPY drive (on the NeoTrellis), copy paste the `.mpy` version of the folders from Step 3. So, you'll have something like:
@@ -127,3 +129,8 @@ Alternatively, you could use Steve's (okyeron's) [solution](https://github.com/o
 6. Also, make sure that your Norns is seeking out the right grid: `MAIN -> SYSTEM -> DEVICES -> GRID -> select-and-change-to-"neo-monome m4216124"`.
 7. (optional) If you're running something like Cheat Codes 2, you'll need to update the grid parameters there, and make sure `midigrid? = no`: `PARAMS -> GRID -> midigrid? = no`.
 8. Do music.
+
+# HID Keyboard
+
+* [Keycodes](https://github.com/adafruit/Adafruit_CircuitPython_HID/blob/master/adafruit_hid/keycode.py)
+

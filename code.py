@@ -1,16 +1,11 @@
 import time
-import usb_midi
-import adafruit_midi
-from board import SCL, SDA
+import usb_hid
 import busio
+from adafruit_hid.keyboard import Keyboard
+from adafruit_hid.keycode import Keycode
+from board import SCL, SDA
 from adafruit_neotrellis.neotrellis import NeoTrellis
 from adafruit_neotrellis.multitrellis import MultiTrellis
-
-# TimingClock is worth importing first, if present
-# from adafruit_midi.timing_clock import TimingClock
-from adafruit_midi.note_off import NoteOff
-from adafruit_midi.note_on import NoteOn
-from adafruit_midi.midi_message import MIDIUnknownEvent
 
 
 # -------------------------
@@ -28,23 +23,73 @@ trelli = [
 
 trellis = MultiTrellis(trelli)
 
+UPPER_LEFT = 40
+
 # some color definitions
 OFF = (0, 0, 0)
+V = 100  # default velocity (color "volume")
 
-# these are base 0
-in_channels = (0,)  # listening on channel 1
-out_channel = 1  # sending through channel 2
+# Tell the device to act like a keyboard.
+keyboard = Keyboard(usb_hid.devices)
 
-midi = adafruit_midi.MIDI(
-    midi_in=usb_midi.ports[0],
-    midi_out=usb_midi.ports[1],
-    in_channel=in_channels,
-    out_channel=out_channel,
-    in_buf_size=64
-)
+# Send a keypress of ESCAPE
+keyboard.send(Keycode.ESCAPE)
 
-UPPER_LEFT = 40
-V = 100  # default velocity
+# Send CTRL-A (select all in most text editors)
+keyboard.send(Keycode.CONTROL, Keycode.A)
+
+# You can also control key press and release manually:
+keyboard.press(Keycode.CONTROL, Keycode.A)
+keyboard.release_all()
+
+keyboard.press(Keycode.ESCAPE)
+keyboard.release(Keycode.ESCAPE)
+
+
+def type_keys(characters):
+    character = {
+        'a': Keycode.A,
+        'b': Keycode.B,
+        'c': Keycode.C,
+        'd': Keycode.D,
+        'e': Keycode.E,
+        'f': Keycode.F,
+        'g': Keycode.G,
+        'h': Keycode.H,
+        'i': Keycode.I,
+        'j': Keycode.J,
+        'k': Keycode.K,
+        'l': Keycode.L,
+        'm': Keycode.M,
+        'n': Keycode.N,
+        'o': Keycode.O,
+        'p': Keycode.P,
+        'q': Keycode.Q,
+        'r': Keycode.R,
+        's': Keycode.S,
+        't': Keycode.T,
+        'u': Keycode.U,
+        'v': Keycode.V,
+        'w': Keycode.W,
+        'x': Keycode.X,
+        'y': Keycode.Y,
+        'z': Keycode.Z,
+        '0': Keycode.ZERO,
+        '1': Keycode.ONE,
+        '2': Keycode.TWO,
+        '3': Keycode.THREE,
+        '4': Keycode.FOUR,
+        '5': Keycode.FIVE,
+        '6': Keycode.SIX,
+        '7': Keycode.SEVEN,
+        '8': Keycode.EIGHT,
+        '9': Keycode.NINE,
+        ' ': Keycode.SPACEBAR
+    }
+
+    for c in characters.lower():
+        keyboard.send(character[c])
+        # keyboard.press(character[c])
 
 
 def get_grid(upper_left, quad=False):
@@ -142,30 +187,6 @@ def pixel_on(v, hue='yellow'):
     return int(r), int(g), int(b)
 
 
-def note_on(light=True):
-    # print(f"IN (on) -- "
-    #       f"C: {msg_in.channel + 1}\t"
-    #       f"N: {msg_in.note}\t"
-    #       f"V: {msg_in.velocity}")
-
-    # square light on
-    if (msg_in.note in flat_grid) and light:
-        x, y = note_to_xy(msg_in.note)
-        trellis.color(x, y, pixel_on(msg_in.velocity))
-
-
-def note_off(light=True):
-    # print(f"IN (off) -- "
-    #       f"C: {msg_in.channel + 1}\t"
-    #       f"N: {msg_in.note}\t"
-    #       f"V: {msg_in.velocity}")
-
-    # square light off
-    if (msg_in.note in flat_grid) and light:
-        x, y = note_to_xy(msg_in.note)
-        trellis.color(x, y, OFF)
-
-
 def button(x, y, edge, light=False):
     '''
     Actions to take for each edge event on the grid
@@ -183,22 +204,15 @@ def button(x, y, edge, light=False):
     '''
     # Recently pressed
     if edge == NeoTrellis.EDGE_RISING:
-        midi.send(NoteOn(grid[y][x], V))
-        # print(f"OUT (on) -- "
-        #       f"C: {out_channel + 1}\t"
-        #       f"N: {grid[y][x]}\t"
-        #       f"V: {V}")
+        text = f"Pressing grid row {y} column {x}"
+        type_keys(text)
+        print(text)
 
         if light:
             trellis.color(x, y, pixel_on(V))
 
     # Recently released
     elif edge == NeoTrellis.EDGE_FALLING:
-        midi.send(NoteOff(grid[y][x]))
-        # print(f"OUT (off) -- "
-        #       f"C: {out_channel + 1}\t"
-        #       f"N: {grid[y][x]}\t"
-        #       f"V: 0")
 
         if light:
             trellis.color(x, y, OFF)
@@ -227,36 +241,10 @@ def init():
 
 
 # -------------------------
-#           INIT
-# -------------------------
-init()
-# print("Output Channel:", midi.out_channel + 1)  # DAWs start at 1
-# print("Input Channels:", [c + 1 for c in midi.in_channel])
-
-# -------------------------
 #         RUNNING
 # -------------------------
+init()
+
 while True:
-    msg_in = midi.receive()  # non-blocking read
-
-    # MIDI IN: Note On
-    if isinstance(msg_in, NoteOn) and (msg_in.velocity not in [0, None]):
-        note_on()
-
-    # MIDI IN: Note Off
-    elif (
-        isinstance(msg_in, NoteOff)
-        or (isinstance(msg_in, NoteOn) and (msg_in.velocity in [0, None]))
-    ):
-        note_off()
-
-    # MIDI IN: Unknown MIDI Event
-    # elif isinstance(msg_in, MIDIUnknownEvent):
-        # print("Unknown MIDI event status ", msg_in.status)
-
-    # MIDI IN: Any other MIDI Event
-    # elif msg_in is not None:
-        # print("MIDI Message ", msg_in)
-
     trellis.sync()
     time.sleep(0.02)  # try commenting this out if things are slow
