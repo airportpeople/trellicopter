@@ -153,15 +153,15 @@ def hsv_to_rgb(h, s, v):
         return v, p, q
 
 
-def v_to_rgb(v=40, hue='orange'):
+def v_to_rgb(v=35, hue='orange'):
     '''
     Get RGB color for a `hue` given some MIDI-inspired brightness value, `v`, between 0 and 127.
 
     color map: https://www.rapidtables.com/convert/color/rgb-to-hsv.html
     '''
     if hue == 'orange':
-        h = 48
-        s = .90
+        h = 28
+        s = 1
     else:
         # white
         h = 0
@@ -172,9 +172,9 @@ def v_to_rgb(v=40, hue='orange'):
     return int(r), int(g), int(b)
 
 
-def main_page(x, y):
+def main_page(x=None, y=None):
     '''
-    Return the information encapsulated in the main page at (`x`, `y`). Returns the (key, value) tuple.
+    If `x` and `y` are None (default), then return the main page key and value grids, respectively. Otherwise, return the information encapsulated in the main page at (`x`, `y`). The latter returns the (key, value) tuple.
     '''
     grid_1x8 = get_grid(0, 1, 8, bottom_right=127)[0]
     grid_1x6_ = get_grid(0, 1, 6, bottom_right=127 // 2)[0]
@@ -199,18 +199,46 @@ def main_page(x, y):
               grid_2x4[1] + grid_2x4[1],
               [1, 3, 1, 2, 'main', 'fine', 'exp', 'psets']]
     
-    return grid_k[y][x], grid_v[y][x]
+    if x is None or y is None:
+        return grid_k, grid_v
+    else:
+        return grid_k[y][x], grid_v[y][x]
 
 
 def redraw_main():
-    pass
+    grid_k, grid_v = main_page()
+
+    for y in range(8):
+        for x in range(8):
+            k = grid_k[y][x]
+            v = grid_v[y][x]
+
+            if k in ['mix', 'clock', 'time', 'length', 
+                     'drip_modify', 'loop_modify']:
+                if v <= params[k]:
+                    trellis.color(x, y, v_to_rgb())
+                else:
+                    trellis.color(x, y, OFF)
+
+            elif k in ['drip', 'loop', 'routing', 'pset']:
+                if v == params[k]:
+                    trellis.color(x, y, v_to_rgb())
+                else:
+                    trellis.color(x, y, OFF)
+                    
+            elif k == 'page':
+                if v == PAGE:
+                    trellis.color(x, y, v_to_rgb())
+                else:
+                    trellis.color(x, y, OFF)
 
 
 def pad_main(x, y):
+    global PAGE
     k, v = main_page(x, y)
         
     if k == 'page':
-        # PAGE = v
+        PAGE = v
         print(f"page -> {v}")
 
     elif k == 'pset':
@@ -239,10 +267,14 @@ def pad(x, y):
     '''
     Activate the pad at (`x`, `y`).
     '''
-    if PAGE == 'main':
-        pad_main(x, y)
+    # if PAGE == 'main':
+    #     pad_main(x, y)
 
+    pad_main(x, y)
+
+    redraw_main()
     print(params)
+    print('PAGE: ', PAGE)
 
 def button(x, y, edge):
     '''
@@ -262,11 +294,10 @@ def button(x, y, edge):
     # Recently pressed
     if edge == NeoTrellis.EDGE_RISING:
         pad(x, y)
-        trellis.color(x, y, v_to_rgb())
 
     # Recently released
-    elif edge == NeoTrellis.EDGE_FALLING:
-        trellis.color(x, y, OFF)
+    # elif edge == NeoTrellis.EDGE_FALLING:
+    #     trellis.color(x, y, OFF)
 
 
 def init():
@@ -284,6 +315,7 @@ def init():
             time.sleep(0.05)
             trellis.color(x, y, OFF)
 
+    redraw_main()
 
 # -------------------------
 #           INIT
