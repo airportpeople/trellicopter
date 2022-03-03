@@ -206,32 +206,43 @@ def redraw_main():
     pass
 
 
+def pad_main(x, y):
+    k, v = main_page(x, y)
+        
+    if k == 'page':
+        # PAGE = v
+        print(f"page -> {v}")
+
+    elif k == 'pset':
+        params[k] = v
+        midi.send(ProgramChange(v))
+        print(f"OUT (pc) -- "
+                f"C: {out_channel + 1}\t"
+                f"p: {v} (pset)\t")
+
+    else:
+        k_trios = ['drip', 'loop', 'routing']
+        if (k in k_trios) and (v == params[k]):
+            params[k] = 2
+        else:
+            params[k] = v
+
+        cc = CC_MAP[k]
+        midi.send(ControlChange(cc, v))
+        print(f"OUT (cc) -- "
+                f"C: {out_channel + 1}\t"
+                f"#: {cc} ({k})\t"
+                f"v: {v}\t")
+
+
 def pad(x, y):
     '''
     Activate the pad at (`x`, `y`).
     '''
     if PAGE == 'main':
-        k, v = main_page(x, y)
-        
-        if k == 'page':
-            # PAGE = v
-            print(f"page -> {v}")
+        pad_main(x, y)
 
-        elif k == 'pset':
-            params[k] = v
-            midi.send(ProgramChange(v))
-            print(f"OUT (pc) -- "
-                  f"C: {out_channel + 1}\t"
-                  f"p: {v} (pset)\t")
-
-        else:
-            cc = CC_MAP[k]
-            midi.send(ControlChange(cc, v))
-            print(f"OUT (cc) -- "
-                  f"C: {out_channel + 1}\t"
-                  f"#: {cc} ({k})\t"
-                  f"v: {v}\t")
-
+    print(params)
 
 def button(x, y, edge):
     '''
