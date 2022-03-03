@@ -7,10 +7,8 @@ import busio
 from board import SCL, SDA
 from adafruit_neotrellis.neotrellis import NeoTrellis
 from adafruit_neotrellis.multitrellis import MultiTrellis
-from adafruit_midi.note_off import NoteOff
-from adafruit_midi.note_on import NoteOn
 from adafruit_midi.control_change import ControlChange
-from adafruit_midi.midi_message import MIDIUnknownEvent
+from adafruit_midi.program_change import ProgramChange
 
 
 # -------------------------
@@ -43,8 +41,6 @@ midi = adafruit_midi.MIDI(
     in_buf_size=64
 )
 
-UPPER_LEFT = 0
-V = 100  # default color value
 PAGE = 'main'
 
 CC_MAP = {
@@ -76,6 +72,9 @@ params = {
 
 
 def get_grid(top_left, height=8, length=8, bottom_right=127, integer=True):
+    """
+    Get a grid of integer vales from `top-left` to `bottom_right`, with the given dimensions.
+    """
     num_vals = length * height
     
     if bottom_right is None:
@@ -94,6 +93,9 @@ def get_grid(top_left, height=8, length=8, bottom_right=127, integer=True):
 
 
 def v_to_xy(v, grid):
+    '''
+    Given a value, `v`, inside of the `grid`, return the (x, y) coordinates.
+    '''
     flat_grid = [i for row in grid for i in row]
     
     assert v in flat_grid
@@ -151,19 +153,19 @@ def hsv_to_rgb(h, s, v):
         return v, p, q
 
 
-def pixel_on(v, hue='yellow'):
+def v_to_rgb(v=40, hue='orange'):
     '''
-    slightly yellow. v is velocity, between 0 and 127
+    Get RGB color for a `hue` given some MIDI-inspired brightness value, `v`, between 0 and 127.
 
     color map: https://www.rapidtables.com/convert/color/rgb-to-hsv.html
     '''
-    if hue == 'yellow':
+    if hue == 'orange':
         h = 48
         s = .90
     else:
         # white
-        h = 180
-        s = 1
+        h = 0
+        s = 0
 
     r, g, b = hsv_to_rgb(h, s, v / 127)
 
@@ -171,6 +173,9 @@ def pixel_on(v, hue='yellow'):
 
 
 def main_page(x, y):
+    '''
+    Return the information encapsulated in the main page at (`x`, `y`). Returns the (key, value) tuple.
+    '''
     grid_1x8 = get_grid(0, 1, 8, bottom_right=127)[0]
     grid_1x6_ = get_grid(0, 1, 6, bottom_right=127 // 2)[0]
     grid_1x5_ = get_grid(76, 1, 5, bottom_right=127)[0]
@@ -197,7 +202,14 @@ def main_page(x, y):
     return grid_k[y][x], grid_v[y][x]
 
 
+def redraw_main():
+    pass
+
+
 def pad(x, y):
+    '''
+    Activate the pad at (`x`, `y`).
+    '''
     if PAGE == 'main':
         k, v = main_page(x, y)
         
@@ -207,7 +219,7 @@ def pad(x, y):
 
         elif k == 'pset':
             params[k] = v
-            # TODO: do the update preset thing
+            midi.send(ProgramChange(v))
             print(f"OUT (pc) -- "
                   f"C: {out_channel + 1}\t"
                   f"p: {v} (pset)\t")
@@ -239,7 +251,7 @@ def button(x, y, edge):
     # Recently pressed
     if edge == NeoTrellis.EDGE_RISING:
         pad(x, y)
-        trellis.color(x, y, pixel_on(V, 'white'))
+        trellis.color(x, y, v_to_rgb())
 
     # Recently released
     elif edge == NeoTrellis.EDGE_FALLING:
@@ -247,12 +259,6 @@ def button(x, y, edge):
 
 
 def init():
-    global grid
-    global flat_grid
-
-    grid = get_grid(UPPER_LEFT)
-    flat_grid = [i for row in grid for i in row]
-
     for y in range(8):
         for x in range(8):
             # activate rising edge events
@@ -263,7 +269,7 @@ def init():
             trellis.set_callback(x, y, button)
 
             # fanciness
-            trellis.color(x, y, pixel_on(V))
+            trellis.color(x, y, v_to_rgb())
             time.sleep(0.05)
             trellis.color(x, y, OFF)
 
@@ -272,7 +278,7 @@ def init():
 #           INIT
 # -------------------------
 init()
-# print("Output Channel:", midi.out_channel + 1)  # DAWs start at 1
+print("Output Channel:", midi.out_channel + 1)  # DAWs start at 1
 # print("Input Channels:", [c + 1 for c in midi.in_channel])
 
 # -------------------------
