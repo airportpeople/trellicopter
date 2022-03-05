@@ -42,11 +42,14 @@ midi = adafruit_midi.MIDI(
 )
 
 PAGE = 'main'
+FINE_PARAM_TYPE = 'drip'
+FINE_PARAM = 'drip_modify'
+BANK = 1
 
 CC_MAP = {
-    'time': 14,
+    'drip_time': 14,
     'mix': 15,
-    'length': 16,
+    'loop_length': 16,
     'drip_modify': 17,
     'clock': 18,
     'loop_modify': 19,
@@ -57,9 +60,9 @@ CC_MAP = {
 }
 
 params = {
-    'time': 64,
+    'drip_time': 64,
     'mix': 64,
-    'length': 64,
+    'loop_length': 64,
     'drip_modify': 64,
     'clock': 64,
     'loop_modify': 64,
@@ -172,6 +175,9 @@ def v_to_rgb(v=35, hue='orange'):
     return int(r), int(g), int(b)
 
 
+# -------------------------
+#        MAIN PAGE
+# -------------------------
 def main_page(x=None, y=None):
     '''
     If `x` and `y` are None (default), then return the main page key and value grids, respectively. Otherwise, return the information encapsulated in the main page at (`x`, `y`). The latter returns the (key, value) tuple.
@@ -184,8 +190,8 @@ def main_page(x=None, y=None):
     grid_k = [['mix'] * 8,
               ['drip'] + ['clock'] * 6 + ['loop'],
               ['drip'] + ['clock'] * 6 + ['loop'],
-              ['time'] * 4 + ['length'] * 4,
-              ['time'] * 4 + ['length'] * 4,
+              ['drip_time'] * 4 + ['loop_length'] * 4,
+              ['drip_time'] * 4 + ['loop_length'] * 4,
               ['drip_modify'] * 4 + ['loop_modify'] * 4,
               ['drip_modify'] * 4 + ['loop_modify'] * 4,
               ['routing', 'routing', 'pset', 'pset', 'page', 'page', 'page', 'page']]
@@ -213,7 +219,7 @@ def redraw_main():
             k = grid_k[y][x]
             v = grid_v[y][x]
 
-            if k in ['mix', 'clock', 'time', 'length', 
+            if k in ['mix', 'clock', 'drip_time', 'loop_length', 
                      'drip_modify', 'loop_modify']:
                 if v <= params[k]:
                     trellis.color(x, y, v_to_rgb())
@@ -263,18 +269,117 @@ def pad_main(x, y):
                 f"v: {v}\t")
 
 
+# -------------------------
+#     FINE TUNING PAGE
+# -------------------------
+def fine_page(x=None, y=None):
+    grid_k = [['*'] * 8] * 7 + \
+        [['param_type'] * 2 + ['param'] * 2 + ['page'] * 4]
+
+    grid_v = get_grid(0, 7) + \
+            [['drip', 'loop', 'drip_time/loop_length', 
+            'drip_modify/loop_modify', 'main', 'fine', 'exp', 'psets']]
+
+    if x is None or y is None:
+        return grid_k, grid_v
+    else:
+        return grid_k[y][x], grid_v[y][x]
+
+
+def redraw_fine():
+    grid_k, grid_v = fine_page()
+
+    for y in range(8):
+        for x in range(8):
+            k = grid_k[y][x]
+            v = grid_v[y][x]
+
+            if k == '*':
+                if v <= params[FINE_PARAM]:
+                    trellis.color(x, y, v_to_rgb())
+                else:
+                    trellis.color(x, y, OFF)
+            
+            elif k == 'param_type':
+                if v == FINE_PARAM_TYPE:
+                    trellis.color(x, y, v_to_rgb())
+                else:
+                    trellis.color(x, y, OFF)
+
+            elif k == 'param':
+                if FINE_PARAM in v:
+                    trellis.color(x, y, v_to_rgb())
+                else:
+                    trellis.color(x, y, OFF)
+            
+            elif k == 'page':
+                if v == PAGE:
+                    trellis.color(x, y, v_to_rgb())
+                else:
+                    trellis.color(x, y, OFF)
+
+
+def pad_fine(x, y):
+    global PAGE
+    global FINE_PARAM
+    global FINE_PARAM_TYPE
+
+    k, v = fine_page(x, y)
+
+    if k == '*':
+        params[FINE_PARAM] = v
+        cc = CC_MAP[FINE_PARAM]
+        midi.send(ControlChange(cc, v))
+        print(f"OUT (cc) -- "
+                f"C: {out_channel + 1}\t"
+                f"#: {cc} ({FINE_PARAM})\t"
+                f"v: {v}\t")
+    
+    elif k == 'param_type':
+        FINE_PARAM_TYPE = 'mix' if FINE_PARAM_TYPE == v else v
+
+        if FINE_PARAM_TYPE == 'mix':
+            FINE_PARAM = 'mix'
+        else:
+            FINE_PARAM = FINE_PARAM_TYPE + '_modify'
+
+    elif k == 'param':
+        if FINE_PARAM_TYPE != 'mix':
+            v = v.split('/')
+            FINE_PARAM = [e for e in v if FINE_PARAM_TYPE in e][0]
+
+    else:
+        PAGE = v
+        print(f"page -> {v}")
+
+# -------------------------
+#         CALLBACK
+# -------------------------
 def pad(x, y):
     '''
     Activate the pad at (`x`, `y`).
     '''
-    # if PAGE == 'main':
-    #     pad_main(x, y)
+    if PAGE == 'main':
+        pad_main(x, y)
 
-    pad_main(x, y)
+    elif PAGE == 'fine':
+        pad_fine(x, y)
 
-    redraw_main()
+    # ...
+
+    if PAGE == 'main':
+        redraw_main()
+
+    elif PAGE == 'fine':
+        redraw_fine()
+
+    # ...
+    
+    print('\nPAGE: ', PAGE)
+    print('FINE_PARAM_TYPE: ', FINE_PARAM_TYPE)
+    print('FINE_PARAM: ', FINE_PARAM)
     print(params)
-    print('PAGE: ', PAGE)
+    
 
 def button(x, y, edge):
     '''
@@ -298,6 +403,8 @@ def button(x, y, edge):
     # Recently released
     # elif edge == NeoTrellis.EDGE_FALLING:
     #     trellis.color(x, y, OFF)
+
+    return None
 
 
 def init():
