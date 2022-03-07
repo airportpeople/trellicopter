@@ -352,6 +352,66 @@ def pad_fine(x, y):
         PAGE = v
         print(f"page -> {v}")
 
+
+# -------------------------
+#     EXPRESSION PAGE
+# -------------------------
+def exp_page(x=None, y=None):
+    grid_k = [['*'] * 8] * 7 + \
+             [['tbd'] * 4 + ['page'] * 4]
+
+    grid_v = get_grid(0, 7) + \
+             [['tbd'] * 4 + ['main', 'fine', 'exp', 'psets']]
+
+    if x is None or y is None:
+        return grid_k, grid_v
+    else:
+        return grid_k[y][x], grid_v[y][x]
+
+
+def redraw_exp():
+    grid_k, grid_v = exp_page()
+
+    for y in range(8):
+        for x in range(8):
+            k = grid_k[y][x]
+            v = grid_v[y][x]
+
+            if k == '*':
+                if v == params['exp']:
+                    trellis.color(x, y, v_to_rgb())
+                else:
+                    trellis.color(x, y, OFF)
+            
+            elif k == 'page':
+                if v == PAGE:
+                    trellis.color(x, y, v_to_rgb())
+                else:
+                    trellis.color(x, y, OFF)
+
+
+def pad_exp(x, y):
+    global PAGE
+
+    k, v = exp_page(x, y)
+
+    if k == '*':
+        params['exp'] = v
+        cc = CC_MAP['exp']
+        midi.send(ControlChange(cc, v))
+        print(f"OUT (cc) -- "
+                f"C: {out_channel + 1}\t"
+                f"#: {cc} (exp)\t"
+                f"v: {v}\t")
+    
+    elif k == 'tbd':
+        print('tbd')
+
+    else:
+        PAGE = v
+        print(f"page -> {v}")
+
+
 # -------------------------
 #         CALLBACK
 # -------------------------
@@ -364,6 +424,9 @@ def pad(x, y):
 
     elif PAGE == 'fine':
         pad_fine(x, y)
+    
+    elif PAGE == 'exp':
+        pad_exp(x, y)
 
     # ...
 
@@ -372,6 +435,9 @@ def pad(x, y):
 
     elif PAGE == 'fine':
         redraw_fine()
+    
+    elif PAGE == 'exp':
+        redraw_exp()
 
     # ...
     
