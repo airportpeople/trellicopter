@@ -168,7 +168,7 @@ def v_to_rgb(v=30, hue='o'):
     colors = {
         'r': (0, 1),
         'o': (28, 1.0),
-        'y': (46, 1.0),
+        'y': (58, 1.0),
         'g': (100, 1.0),
         'b': (225, 1.0),
         'i': (290, 1.0),
@@ -434,7 +434,7 @@ def preset_page(x=None, y=None, bank=1):
             height=5, 
             bottom_right=bank * 5 * 8 + 2) + \
             [['r', 'o', 'y', 'g', 'b', 'i', 'v', 'w']] + \
-            [[0, 14, 29, 43, 57, 71, 86, 100]] + \
+            [[0, 2, 6, 18, 30, 40, 60, 100]] + \
             [[1, 2, 3, 0] + ['main', 'fine', 'exp', 'psets']]
 
     if x is None or y is None:
@@ -457,7 +457,7 @@ def redraw_preset():
                     v_ = psets[v][1]
                     
                     if v == PSET: 
-                        v_ = min(v_ * 1.2, 100)
+                        v_ = min(v_ * 1.5, 100)
 
                     trellis.color(x, y, v_to_rgb(v_, hue_))
 
