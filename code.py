@@ -45,6 +45,9 @@ PAGE = 'main'
 FINE_PARAM_TYPE = 'drip'
 FINE_PARAM = 'drip_modify'
 BANK = 1
+PSET = 0
+HUE = None
+BRIGHTNESS = None
 
 CC_MAP = {
     'drip_time': 14,
@@ -72,6 +75,8 @@ params = {
     'exp': 0,
     'pset': 0
 }
+
+psets = {}
 
 
 def get_grid(top_left, height=8, length=8, bottom_right=127, integer=True):
@@ -156,21 +161,23 @@ def hsv_to_rgb(h, s, v):
         return v, p, q
 
 
-def v_to_rgb(v=35, hue='orange'):
+def v_to_rgb(v=30, hue='o'):
     '''
-    Get RGB color for a `hue` given some MIDI-inspired brightness value, `v`, between 0 and 127.
-
-    color map: https://www.rapidtables.com/convert/color/rgb-to-hsv.html
+    Get RGB color for a `hue` given some brightness value, `v`, between 0 and 100. `hue` should be in {r, o, y, g, b, i, v, w}, where 'w' is white.
     '''
-    if hue == 'orange':
-        h = 28
-        s = 1
-    else:
-        # white
-        h = 0
-        s = 0
+    colors = {
+        'r': (0, 1),
+        'o': (28, 1.0),
+        'y': (46, 1.0),
+        'g': (100, 1.0),
+        'b': (225, 1.0),
+        'i': (290, 1.0),
+        'v': (324, 0.98),
+        'w': (0, 0.0)
+    }
 
-    r, g, b = hsv_to_rgb(h, s, v / 127)
+    h, s = colors[hue]
+    r, g, b = hsv_to_rgb(h, s, v / 100)
 
     return int(r), int(g), int(b)
 
@@ -413,6 +420,130 @@ def pad_exp(x, y):
 
 
 # -------------------------
+#       PRESET PAGE
+# -------------------------
+def preset_page(x=None, y=None, bank=1):
+    grid_k = [['*'] * 8] * 5 + \
+            [['hue'] * 8] + \
+            [['v'] * 8] + \
+            [['bank'] * 3 + ['live'] + ['page'] * 4]
+
+    # start with 3, and up
+    grid_v = get_grid(
+            top_left=(bank - 1) * 5 * 8 + 3, 
+            height=5, 
+            bottom_right=bank * 5 * 8 + 2) + \
+            [['r', 'o', 'y', 'g', 'b', 'i', 'v', 'w']] + \
+            [[0, 14, 29, 43, 57, 71, 86, 100]] + \
+            [[1, 2, 3, 0] + ['main', 'fine', 'exp', 'psets']]
+
+    if x is None or y is None:
+        return grid_k, grid_v
+    else:
+        return grid_k[y][x], grid_v[y][x]
+
+
+def redraw_preset():
+    grid_k, grid_v = preset_page(bank=BANK)
+
+    for y in range(8):
+        for x in range(8):
+            k = grid_k[y][x]
+            v = grid_v[y][x]
+
+            if k == '*':
+                if v in psets.keys():
+                    hue_ = psets[v][0]
+                    v_ = psets[v][1]
+                    
+                    if v == PSET: 
+                        v_ = min(v_ * 1.2, 100)
+
+                    trellis.color(x, y, v_to_rgb(v_, hue_))
+
+                else:
+                    trellis.color(x, y, OFF)
+            
+            elif k == 'hue':
+                trellis.color(x, y, v_to_rgb(hue=v))
+
+            elif k == 'v':
+                trellis.color(x, y, v_to_rgb(v=v))
+            
+            elif k == 'bank':
+                if v == BANK:
+                    trellis.color(x, y, v_to_rgb())
+                else:
+                    trellis.color(x, y, OFF)
+            
+            elif k == 'live':
+                if PSET == v:
+                    trellis.color(x, y, v_to_rgb())
+                else:
+                    trellis.color(x, y, OFF)
+            
+            elif k == 'page':
+                if PAGE == v:
+                    trellis.color(x, y, v_to_rgb())
+                else:
+                    trellis.color(x, y, OFF)
+
+
+def pad_preset(x, y):
+    global PAGE
+    global BANK
+    global HUE
+    global BRIGHTNESS
+    global PSET
+    global psets
+
+    k, v = preset_page(x, y, BANK)
+
+    if k == '*':          
+        # if a hue and brightness were just selected
+        if (HUE is not None) and (BRIGHTNESS is not None):
+            if (v in psets.keys()) and \
+                (HUE == psets[v][0]) and \
+                (BRIGHTNESS == 0):
+                # remove preset
+                _ = psets.pop(v)
+            elif BRIGHTNESS > 0:
+                psets[v] = (HUE, BRIGHTNESS)
+                
+            HUE = None
+            BRIGHTNESS = None
+
+        if v in psets.keys():
+            PSET = v
+            midi.send(ProgramChange(v))
+            print(f"OUT (pc) -- "
+                f"C: {out_channel + 1}\t"
+                f"v: {v}\t")
+        
+    elif k == 'hue':
+        HUE = v
+    
+    elif k == 'v':
+        BRIGHTNESS = v
+    
+    elif k == 'bank':
+        BANK = v
+
+    elif k == 'live':
+        PSET = 0
+        midi.send(ProgramChange(v))
+        print(f"OUT (pc) -- "
+            f"C: {out_channel + 1}\t"
+            f"v: {v}\t")
+
+        print(psets)
+    
+    elif k == 'page':
+        PAGE = v
+        print(f"page -> {v}")
+
+
+# -------------------------
 #         CALLBACK
 # -------------------------
 def pad(x, y):
@@ -428,7 +559,8 @@ def pad(x, y):
     elif PAGE == 'exp':
         pad_exp(x, y)
 
-    # ...
+    elif PAGE == 'psets':
+        pad_preset(x, y)
 
     if PAGE == 'main':
         redraw_main()
@@ -439,7 +571,8 @@ def pad(x, y):
     elif PAGE == 'exp':
         redraw_exp()
 
-    # ...
+    elif PAGE == 'psets':
+        redraw_preset()
     
     print('\nPAGE: ', PAGE)
     print('FINE_PARAM_TYPE: ', FINE_PARAM_TYPE)
