@@ -252,28 +252,23 @@ def pad_main(x, y):
         
     if k == 'page':
         PAGE = v
-        print(f"page -> {v}")
+        print(f"page --> {v}")
 
     elif k == 'pset':
         params[k] = v
         midi.send(ProgramChange(v))
-        print(f"OUT (pc) -- "
-                f"C: {out_channel + 1}\t"
-                f"p: {v} (pset)\t")
+        print(f"pset (pc) --> {v}\n")
+        print(params)
 
     else:
         k_trios = ['drip', 'loop', 'routing']
         if (k in k_trios) and (v == params[k]):
-            params[k] = 2
-        else:
-            params[k] = v
-
+            v = 2
+        
+        params[k] = v
         cc = CC_MAP[k]
         midi.send(ControlChange(cc, v))
-        print(f"OUT (cc) -- "
-                f"C: {out_channel + 1}\t"
-                f"#: {cc} ({k})\t"
-                f"v: {v}\t")
+        print(f"{k} ({cc}) --> {v}")
 
 
 # -------------------------
@@ -337,10 +332,7 @@ def pad_fine(x, y):
         params[FINE_PARAM] = v
         cc = CC_MAP[FINE_PARAM]
         midi.send(ControlChange(cc, v))
-        print(f"OUT (cc) -- "
-                f"C: {out_channel + 1}\t"
-                f"#: {cc} ({FINE_PARAM})\t"
-                f"v: {v}\t")
+        print(f"{FINE_PARAM} ({cc}) --> {v}")
     
     elif k == 'param_type':
         FINE_PARAM_TYPE = 'mix' if FINE_PARAM_TYPE == v else v
@@ -357,7 +349,7 @@ def pad_fine(x, y):
 
     else:
         PAGE = v
-        print(f"page -> {v}")
+        print(f"page --> {v}")
 
 
 # -------------------------
@@ -396,27 +388,26 @@ def redraw_exp():
                 else:
                     trellis.color(x, y, OFF)
 
+            elif k == 'tbd':
+                trellis.color(x, y, OFF)
+
 
 def pad_exp(x, y):
     global PAGE
-
     k, v = exp_page(x, y)
 
     if k == '*':
         params['exp'] = v
         cc = CC_MAP['exp']
         midi.send(ControlChange(cc, v))
-        print(f"OUT (cc) -- "
-                f"C: {out_channel + 1}\t"
-                f"#: {cc} (exp)\t"
-                f"v: {v}\t")
+        print(f"exp ({cc}) --> {v}")
     
     elif k == 'tbd':
-        print('tbd')
+        print('tbd ...')
 
     else:
         PAGE = v
-        print(f"page -> {v}")
+        print(f"page --> {v}")
 
 
 # -------------------------
@@ -516,9 +507,7 @@ def pad_preset(x, y):
         if v in psets.keys():
             PSET = v
             midi.send(ProgramChange(v))
-            print(f"OUT (pc) -- "
-                f"C: {out_channel + 1}\t"
-                f"v: {v}\t")
+            print(f"pset (pc) --> {v}")
         
     elif k == 'hue':
         HUE = v
@@ -532,15 +521,12 @@ def pad_preset(x, y):
     elif k == 'live':
         PSET = 0
         midi.send(ProgramChange(v))
-        print(f"OUT (pc) -- "
-            f"C: {out_channel + 1}\t"
-            f"v: {v}\t")
-
+        print(f"pset (pc) --> {v}\n")
         print(psets)
     
     elif k == 'page':
         PAGE = v
-        print(f"page -> {v}")
+        print(f"page --> {v}")
 
 
 # -------------------------
@@ -573,11 +559,6 @@ def pad(x, y):
 
     elif PAGE == 'psets':
         redraw_preset()
-    
-    print('\nPAGE: ', PAGE)
-    print('FINE_PARAM_TYPE: ', FINE_PARAM_TYPE)
-    print('FINE_PARAM: ', FINE_PARAM)
-    print(params)
     
 
 def button(x, y, edge):
