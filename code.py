@@ -46,7 +46,6 @@ trellis = MultiTrellis(trellis)
 
 # some color definitions
 OFF = (0, 0, 0)
-V = 100  # default velocity (color "volume")
 
 # Keyboard characters
 KEY = {
@@ -98,7 +97,18 @@ KEY = {
 # params
 SELECT = 'track1'
 CONTROL = '1'
+CONTROLLER = None
 MACRO = None
+
+assignments = {
+    'gridx1': None,
+    'gridy1': None,
+    'gridx2': None,
+    'gridy2': None,
+    'enc1': None,
+    'enc2': None,
+    'enc3': None
+}
 
 # Tell the device to act like a keyboard.
 keyboard = Keyboard(usb_hid.devices)
@@ -253,9 +263,9 @@ def grid(x=None, y=None):
         ['gridy 1'] * 5 + [f'control_number {i}' for i in range(7, 10)],
         ['gridx 2'] * 5 + [f'control_number {i}' for i in range(10, 13)],
         ['gridy 2'] * 5 + [f'control_number {i}' for i in range(13, 16)],
-        ['enc 1'] * 5 + ['macro 1', 'macro 2', 'macro 3'],
-        ['enc 2'] * 5 + ['macro .5', 'macro -1', 'macro clear'],
-        ['enc 3'] * 5 + ['random ', 'grid_mode ', 'assign ']]
+        ['enc 1'] * 5 + ['macro 1', 'macro .5', 'random '],
+        ['enc 2'] * 5 + ['macro 2', 'macro -1', 'grid_mode '],
+        ['enc 3'] * 5 + ['macro 3', 'macro clear', 'assign ']]
     
     if x is None or y is None:
         return g
@@ -266,6 +276,8 @@ def grid(x=None, y=None):
 
 def redraw_grid():
     global SELECT
+    global CONTROLLER
+    global assignments
     
     for y in range(8):
         for x in range(8):
@@ -276,55 +288,62 @@ def redraw_grid():
                 if k + v == SELECT:
                     trellis.color(x, y, v_to_rgb(40))
                 else:
-                    trellis.color(x, y, v_to_rgb(10))
+                    trellis.color(x, y, v_to_rgb(7))
 
             elif k == 'assign':
-                trellis.color(x, y, v_to_rgb(40))
+                trellis.color(x, y, v_to_rgb(2))
 
             elif k == 'control_number':
-                trellis.color(x, y, v_to_rgb(3))
+                trellis.color(x, y, v_to_rgb(2))
             
-            elif k == 'macro':
-                trellis.color(x, y, v_to_rgb(1, 'b'))
+            elif (k == 'macro') and (v in '123'):
+                trellis.color(x, y, v_to_rgb(0.5, 'b'))
+            
+            elif k in ['gridx', 'gridy', 'enc']:
+                if x == assignments[k + v]:
+                    trellis.color(x, y, v_to_rgb(2))
 
+                elif CONTROLLER != k + v + f'-{x}':
+                    trellis.color(x, y, OFF)
+            
             elif v == '':
                 trellis.color(x, y, v_to_rgb(1, 'w'))
-
+   
 
 def pad_grid(x, y):
     global SELECT
+    global CONTROLLER
     k, v = grid(x, y)
         
     if ('track' in k) or (k == 'fx'):
         SELECT = k + v
         print(f"select --> {k + v}")
 
-    # elif k == 'pset':
-    #     params[k] = v
-    #     midi.send(ProgramChange(v))
-    #     print(f"pset (pc) --> {v}\n")
-    #     print(params)
-
-    # else:
-    #     k_trios = ['drip', 'loop', 'routing']
-    #     if (k in k_trios) and (v == params[k]):
-    #         v = 2
-        
-    #     params[k] = v
-    #     cc = CC_MAP[k]
-    #     midi.send(ControlChange(cc, v))
-    #     print(f"{k} ({cc}) --> {v}")
+    elif (x < 5) and (y > 0):
+        if CONTROLLER == k + v + f'-{x}':
+            CONTROLLER = None
+            trellis.color(x, y, OFF)
+            print(f"controller --> None")
+        else:
+            CONTROLLER = k + v + f'-{x}'
+            trellis.color(x, y, v_to_rgb(20))
+            print(f"controller --> {k + v}-{x}")
 
 
 # -------------------------
 #         CALLBACK
 # -------------------------
 def pad(x, y):
+    '''
+    Utility function after button [x, y] is pressed.
+
+    Note: x and y are zero-based (i.e., 0, 1, ..., etc.)
+    '''
     pad_grid(x, y)
     redraw_grid()
 
 
-def button(x, y, edge, light=True):
+def button(x, y, edge):
     '''
     Actions to take for each edge event on the grid
 
@@ -336,23 +355,17 @@ def button(x, y, edge, light=True):
         grid row
     edge : NeoTrellis EDGE event
         event
-    light : bool
-        activate pixel light on edge events
     '''
     # Recently pressed
     if edge == NeoTrellis.EDGE_RISING:
-        if light:
-            trellis.color(x, y, v_to_rgb())
+        pad(x, y)
 
         # TESTING
-        type_keys(f"row {y} column {x}")
-
-        pad(x, y)
+        # type_keys(f"row {y} column {x}")
 
     # Recently released
     # elif edge == NeoTrellis.EDGE_FALLING:
-    #     if light:
-    #         trellis.color(x, y, OFF)
+    #     pass
 
     return None
 
@@ -383,4 +396,4 @@ init()
 
 while True:
     trellis.sync()
-    time.sleep(0.02)  # try commenting this out if things are slow
+    time.sleep(0.01)  # try commenting this out if things are slow
