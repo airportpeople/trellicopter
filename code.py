@@ -95,10 +95,10 @@ KEY = {
 }
 
 # params
-SELECT = 'track1'
+SELECT = None
 CONTROL = None
 CONTROLLER = None
-MACRO = None
+MACRO = 0
 
 assignments = {
     'gridx1': None,
@@ -278,6 +278,7 @@ def redraw_grid():
     global SELECT
     global CONTROL
     global CONTROLLER
+    global MACRO
     global assignments
     
     for y in range(8):
@@ -285,7 +286,7 @@ def redraw_grid():
             k, v = grid(x, y)
 
             # top track/fx row
-            if ('track' in k) or (k == 'fx'):
+            if k in ['track', 'fx']:
                 if k + v == SELECT:
                     trellis.color(x, y, v_to_rgb(40))
                 else:
@@ -301,7 +302,10 @@ def redraw_grid():
                     trellis.color(x, y, v_to_rgb(2))
             
             elif (k == 'macro') and (v in '123'):
-                trellis.color(x, y, v_to_rgb(0.5, 'b'))
+                if MACRO == v:
+                    trellis.color(x, y, v_to_rgb(2, 'b'))
+                else:
+                    trellis.color(x, y, v_to_rgb(0.5, 'b'))
             
             elif k in ['gridx', 'gridy', 'enc']:
                 if CONTROLLER == k + v + f'-{x}':
@@ -319,9 +323,10 @@ def pad_grid(x, y):
     global SELECT
     global CONTROL
     global CONTROLLER
+    global MACRO
     k, v = grid(x, y)
         
-    if ('track' in k) or (k == 'fx'):
+    if k in ['track', 'fx']:
         SELECT = k + v
         print(f"select --> {k + v}")
 
@@ -345,6 +350,15 @@ def pad_grid(x, y):
             trellis.color(x, y, v_to_rgb(20))
             print(f"control --> {v}")
 
+    elif k == 'macro':
+        if MACRO == v:
+            MACRO = 0
+            trellis.color(x, y, v_to_rgb(0.5, 'b'))
+            print(f"macro --> 0")
+        elif v in '123':
+            MACRO = v
+            trellis.color(x, y, v_to_rgb(2, 'b'))
+            print(f"macro --> {v}")
 
 # -------------------------
 #         CALLBACK
