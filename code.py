@@ -1,14 +1,32 @@
-import time
-from random import random
+'''
+Keyboard commands to adjust gridxy on silos script
 
-import usb_midi
-import adafruit_midi
+(https://norns.community/authors/justmat/silos)
+
+Some Notes for Trellis Keyboard library:
+
+# Send a keypress of ESCAPE
+keyboard.send(Keycode.ESCAPE)
+
+# Send CTRL-A (select all in most text editors)
+keyboard.send(Keycode.CONTROL, Keycode.A)
+
+# You can also control key press and release manually:
+keyboard.press(Keycode.CONTROL, Keycode.A)
+keyboard.release_all()
+
+keyboard.press(Keycode.ESCAPE)
+keyboard.release(Keycode.ESCAPE)
+'''
+
+import time
+import usb_hid
 import busio
+from adafruit_hid.keyboard import Keyboard
+from adafruit_hid.keycode import Keycode
 from board import SCL, SDA
 from adafruit_neotrellis.neotrellis import NeoTrellis
 from adafruit_neotrellis.multitrellis import MultiTrellis
-from adafruit_midi.control_change import ControlChange
-from adafruit_midi.program_change import ProgramChange
 
 
 # -------------------------
@@ -17,71 +35,111 @@ from adafruit_midi.program_change import ProgramChange
 # create the i2c object for the trellis
 i2c_bus = busio.I2C(SCL, SDA)
 
-trelli = [
+trellis = [
     [NeoTrellis(i2c_bus, False, addr=0x2E),
      NeoTrellis(i2c_bus, False, addr=0x30)],
     [NeoTrellis(i2c_bus, False, addr=0x31),
      NeoTrellis(i2c_bus, False, addr=0x2F)]
 ]
 
-trellis = MultiTrellis(trelli)
+trellis = MultiTrellis(trellis)
 
 # some color definitions
 OFF = (0, 0, 0)
+V = 100  # default velocity (color "volume")
 
-# these are base 0
-in_channels = (0,)  # listening on channel 1
-out_channel = 1  # sending through channel 2
-
-midi = adafruit_midi.MIDI(
-    midi_in=usb_midi.ports[0],
-    midi_out=usb_midi.ports[1],
-    in_channel=in_channels,
-    out_channel=out_channel,
-    in_buf_size=64
-)
-
-PAGE = 'main'
-FINE_PARAM_TYPE = 'drip'
-FINE_PARAM = 'drip_modify'
-BANK = 1
-PSET = 0
-HUE = None
-BRIGHTNESS = None
-
-CC_MAP = {
-    'drip_time': 14,
-    'mix': 15,
-    'loop_length': 16,
-    'drip_modify': 17,
-    'clock': 18,
-    'loop_modify': 19,
-    'drip': 21,
-    'routing': 22,
-    'loop': 23,
-    'exp': 100
+# Keyboard characters
+KEY = {
+    'a': Keycode.A,
+    'b': Keycode.B,
+    'c': Keycode.C,
+    'd': Keycode.D,
+    'e': Keycode.E,
+    'f': Keycode.F,
+    'g': Keycode.G,
+    'h': Keycode.H,
+    'i': Keycode.I,
+    'j': Keycode.J,
+    'k': Keycode.K,
+    'l': Keycode.L,
+    'm': Keycode.M,
+    'n': Keycode.N,
+    'o': Keycode.O,
+    'p': Keycode.P,
+    'q': Keycode.Q,
+    'r': Keycode.R,
+    's': Keycode.S,
+    't': Keycode.T,
+    'u': Keycode.U,
+    'v': Keycode.V,
+    'w': Keycode.W,
+    'x': Keycode.X,
+    'y': Keycode.Y,
+    'z': Keycode.Z,
+    '0': Keycode.ZERO,
+    '1': Keycode.ONE,
+    '2': Keycode.TWO,
+    '3': Keycode.THREE,
+    '4': Keycode.FOUR,
+    '5': Keycode.FIVE,
+    '6': Keycode.SIX,
+    '7': Keycode.SEVEN,
+    '8': Keycode.EIGHT,
+    '9': Keycode.NINE,
+    ' ': Keycode.SPACEBAR,
+    '-': Keycode.ESCAPE,
+    '@': Keycode.CONTROL,
+    '#': Keycode.COMMAND,
+    '>': Keycode.RIGHT_ARROW,
+    '<': Keycode.LEFT_ARROW,
+    '!': Keycode.RETURN
 }
 
-params = {
-    'drip_time': 64,
-    'mix': 64,
-    'loop_length': 64,
-    'drip_modify': 64,
-    'clock': 64,
-    'loop_modify': 64,
-    'drip': 2,
-    'routing': 2,
-    'loop': 2,
-    'exp': 0,
-    'pset': 0
-}
+# params
+SELECT = '1'
+CONTROL = '1'
+MACRO = None
 
-psets = {}
+# Tell the device to act like a keyboard.
+keyboard = Keyboard(usb_hid.devices)
 
 
-def get_grid(top_left, height=8, length=8, bottom_right=127, integer=True):
+def type_keys(characters, press=False, wait=0.04):
     """
-    Get a grid of integer vales from `top-left` to `bottom_right`, with the given dimensions.
+    Type the keys in `characters` in sequence, with `wait` seconds in between
+
+    Parameters
+    ----------
+    characters : str
+        Characters to type
+    press : bool, optional
+        Send `keyboard.send` instead of `keyboard.press`, by default False
+    wait : float
+        Time between key presses/sends
+    """
+    for c in characters.lower():
+        time.sleep(wait)
+        if press:
+            keyboard.press(KEY[c])
+        else:
+            keyboard.send(KEY[c])
+
+
+def release_keys(characters, release_all=True, wait=0.04):
+    '''
+    Release either all keys (with `release_all`), or all keys in `characters` in sequence, with `wait` seconds in between each release.
+    '''
+    if release_all:
+        keyboard.release_all()
+    else:
+        for c in characters.lower():
+            time.sleep(wait)
+            keyboard.release(KEY[c])
+
+
+def get_grid(top_left=0, height=8, length=8, bottom_right=63, integer=True):
+    """
+    Get a grid of integer vales from `top-left` to `bottom_right` (inclusive), with the given dimensions.
     """
     num_vals = length * height
     
@@ -183,385 +241,86 @@ def v_to_rgb(v=30, hue='o'):
 
 
 # -------------------------
-#        MAIN PAGE
+#        GRID
 # -------------------------
-def main_page(x=None, y=None):
+def grid(x=None, y=None):
     '''
     If `x` and `y` are None (default), then return the main page key and value grids, respectively. Otherwise, return the information encapsulated in the main page at (`x`, `y`). The latter returns the (key, value) tuple.
     '''
-    grid_1x8 = get_grid(0, 1, 8, bottom_right=127)[0]
-    grid_1x6_ = get_grid(0, 1, 6, bottom_right=127 // 2)[0]
-    grid_1x5_ = get_grid(76, 1, 5, bottom_right=127)[0]
-    grid_2x4 = get_grid(0, 2, 4, bottom_right=127)
-    
-    grid_k = [['mix'] * 8,
-              ['drip'] + ['clock'] * 6 + ['loop'],
-              ['drip'] + ['clock'] * 6 + ['loop'],
-              ['drip_time'] * 4 + ['loop_length'] * 4,
-              ['drip_time'] * 4 + ['loop_length'] * 4,
-              ['drip_modify'] * 4 + ['loop_modify'] * 4,
-              ['drip_modify'] * 4 + ['loop_modify'] * 4,
-              ['routing', 'routing', 'pset', 'pset', 'page', 'page', 'page', 'page']]
-
-    grid_v = [grid_1x8,
-              [1] + grid_1x6_ + [1],
-              [3] + grid_1x5_ + [int(random() * 127)] + [3],
-              grid_2x4[0] + grid_2x4[0],
-              grid_2x4[1] + grid_2x4[1],
-              grid_2x4[0] + grid_2x4[0],
-              grid_2x4[1] + grid_2x4[1],
-              [1, 3, 1, 2, 'main', 'fine', 'exp', 'psets']]
+    g = [[f'track_{i}' for i in range(1, 5)] + ['fx'] + 
+            [f'control_number_{i}' for i in range(1, 4)],
+        ['gridx_1'] * 5 + [f'control_number_{i}' for i in range(4, 7)],
+        ['gridy_1'] * 5 + [f'control_number_{i}' for i in range(7, 10)],
+        ['gridx_2'] * 5 + [f'control_number_{i}' for i in range(10, 13)],
+        ['gridy_2'] * 5 + [f'control_number_{i}' for i in range(13, 16)],
+        ['enc_1'] * 5 + ['macro_1', 'macro_2', 'macro_3'],
+        ['enc_2'] * 5 + ['macro_.5', 'macro_-1', 'macro_clear'],
+        ['enc_3'] * 5 + ['random', 'grid_mode', 'assign']]
     
     if x is None or y is None:
-        return grid_k, grid_v
+        return g
     else:
-        return grid_k[y][x], grid_v[y][x]
-
-
-def redraw_main():
-    grid_k, grid_v = main_page()
-
-    for y in range(8):
-        for x in range(8):
-            k = grid_k[y][x]
-            v = grid_v[y][x]
-
-            if k in ['mix', 'clock', 'drip_time', 'loop_length', 
-                     'drip_modify', 'loop_modify']:
-                if v <= params[k]:
-                    trellis.color(x, y, v_to_rgb())
-                else:
-                    trellis.color(x, y, OFF)
-
-            elif k in ['drip', 'loop', 'routing', 'pset']:
-                if v == params[k]:
-                    trellis.color(x, y, v_to_rgb())
-                else:
-                    trellis.color(x, y, OFF)
-                    
-            elif k == 'page':
-                if v == PAGE:
-                    trellis.color(x, y, v_to_rgb())
-                else:
-                    trellis.color(x, y, OFF)
-
-
-def pad_main(x, y):
-    global PAGE
-    k, v = main_page(x, y)
-        
-    if k == 'page':
-        PAGE = v
-        print(f"page --> {v}")
-
-    elif k == 'pset':
-        params[k] = v
-        midi.send(ProgramChange(v))
-        print(f"pset (pc) --> {v}\n")
-        print(params)
-
-    else:
-        k_trios = ['drip', 'loop', 'routing']
-        if (k in k_trios) and (v == params[k]):
-            v = 2
-        
-        params[k] = v
-        cc = CC_MAP[k]
-        midi.send(ControlChange(cc, v))
-        print(f"{k} ({cc}) --> {v}")
-
-
-# -------------------------
-#     FINE TUNING PAGE
-# -------------------------
-def fine_page(x=None, y=None):
-    grid_k = [['*'] * 8] * 7 + \
-        [['param_type'] * 2 + ['param'] * 2 + ['page'] * 4]
-
-    grid_v = get_grid(0, 7) + \
-            [['drip', 'loop', 'drip_time/loop_length', 
-            'drip_modify/loop_modify', 'main', 'fine', 'exp', 'psets']]
-
-    if x is None or y is None:
-        return grid_k, grid_v
-    else:
-        return grid_k[y][x], grid_v[y][x]
-
-
-def redraw_fine():
-    grid_k, grid_v = fine_page()
-
-    for y in range(8):
-        for x in range(8):
-            k = grid_k[y][x]
-            v = grid_v[y][x]
-
-            if k == '*':
-                if v <= params[FINE_PARAM]:
-                    trellis.color(x, y, v_to_rgb())
-                else:
-                    trellis.color(x, y, OFF)
-            
-            elif k == 'param_type':
-                if v == FINE_PARAM_TYPE:
-                    trellis.color(x, y, v_to_rgb())
-                else:
-                    trellis.color(x, y, OFF)
-
-            elif k == 'param':
-                if FINE_PARAM in v:
-                    trellis.color(x, y, v_to_rgb())
-                else:
-                    trellis.color(x, y, OFF)
-            
-            elif k == 'page':
-                if v == PAGE:
-                    trellis.color(x, y, v_to_rgb())
-                else:
-                    trellis.color(x, y, OFF)
-
-
-def pad_fine(x, y):
-    global PAGE
-    global FINE_PARAM
-    global FINE_PARAM_TYPE
-
-    k, v = fine_page(x, y)
-
-    if k == '*':
-        params[FINE_PARAM] = v
-        cc = CC_MAP[FINE_PARAM]
-        midi.send(ControlChange(cc, v))
-        print(f"{FINE_PARAM} ({cc}) --> {v}")
-    
-    elif k == 'param_type':
-        FINE_PARAM_TYPE = 'mix' if FINE_PARAM_TYPE == v else v
-
-        if FINE_PARAM_TYPE == 'mix':
-            FINE_PARAM = 'mix'
+        if '_' in g[y][x]:
+            return g[y][x].split('_')[0], g[y][x].split('_')[1]
         else:
-            FINE_PARAM = FINE_PARAM_TYPE + '_modify'
-
-    elif k == 'param':
-        if FINE_PARAM_TYPE != 'mix':
-            v = v.split('/')
-            FINE_PARAM = [e for e in v if FINE_PARAM_TYPE in e][0]
-
-    else:
-        PAGE = v
-        print(f"page --> {v}")
+            return g[y][x], ""
 
 
-# -------------------------
-#     EXPRESSION PAGE
-# -------------------------
-def exp_page(x=None, y=None):
-    grid_k = [['*'] * 8] * 7 + \
-             [['tbd'] * 4 + ['page'] * 4]
-
-    grid_v = get_grid(0, 7) + \
-             [['tbd'] * 4 + ['main', 'fine', 'exp', 'psets']]
-
-    if x is None or y is None:
-        return grid_k, grid_v
-    else:
-        return grid_k[y][x], grid_v[y][x]
-
-
-def redraw_exp():
-    grid_k, grid_v = exp_page()
-
-    for y in range(8):
-        for x in range(8):
-            k = grid_k[y][x]
-            v = grid_v[y][x]
-
-            if k == '*':
-                if v == params['exp']:
-                    trellis.color(x, y, v_to_rgb())
-                else:
-                    trellis.color(x, y, OFF)
-            
-            elif k == 'page':
-                if v == PAGE:
-                    trellis.color(x, y, v_to_rgb())
-                else:
-                    trellis.color(x, y, OFF)
-
-            elif k == 'tbd':
-                trellis.color(x, y, OFF)
-
-
-def pad_exp(x, y):
-    global PAGE
-    k, v = exp_page(x, y)
-
-    if k == '*':
-        params['exp'] = v
-        cc = CC_MAP['exp']
-        midi.send(ControlChange(cc, v))
-        print(f"exp ({cc}) --> {v}")
+def redraw_grid():
+    global SELECT
     
-    elif k == 'tbd':
-        print('tbd ...')
-
-    else:
-        PAGE = v
-        print(f"page --> {v}")
-
-
-# -------------------------
-#       PRESET PAGE
-# -------------------------
-def preset_page(x=None, y=None, bank=1):
-    grid_k = [['*'] * 8] * 5 + \
-            [['hue'] * 8] + \
-            [['v'] * 8] + \
-            [['bank'] * 3 + ['live'] + ['page'] * 4]
-
-    # start with 3, and up
-    grid_v = get_grid(
-            top_left=(bank - 1) * 5 * 8 + 3, 
-            height=5, 
-            bottom_right=bank * 5 * 8 + 2) + \
-            [['r', 'o', 'y', 'g', 'b', 'i', 'v', 'w']] + \
-            [[0, 2, 6, 18, 30, 40, 60, 100]] + \
-            [[1, 2, 3, 0] + ['main', 'fine', 'exp', 'psets']]
-
-    if x is None or y is None:
-        return grid_k, grid_v
-    else:
-        return grid_k[y][x], grid_v[y][x]
-
-
-def redraw_preset():
-    grid_k, grid_v = preset_page(bank=BANK)
-
     for y in range(8):
         for x in range(8):
-            k = grid_k[y][x]
-            v = grid_v[y][x]
+            k, v = grid(x, y)
 
-            if k == '*':
-                if v in psets.keys():
-                    hue_ = psets[v][0]
-                    v_ = psets[v][1]
-                    
-                    if v == PSET: 
-                        v_ = min(v_ * 1.5, 100)
-
-                    trellis.color(x, y, v_to_rgb(v_, hue_))
-
+            # top track/fx row
+            if ('track' in k) or (k == 'fx'):
+                if k + v == SELECT:
+                    trellis.color(x, y, v_to_rgb(40))
                 else:
-                    trellis.color(x, y, OFF)
-            
-            elif k == 'hue':
-                trellis.color(x, y, v_to_rgb(hue=v))
+                    trellis.color(x, y, v_to_rgb(10))
 
-            elif k == 'v':
-                trellis.color(x, y, v_to_rgb(v=v))
-            
-            elif k == 'bank':
-                if v == BANK:
-                    trellis.color(x, y, v_to_rgb())
-                else:
-                    trellis.color(x, y, OFF)
-            
-            elif k == 'live':
-                if PSET == v:
-                    trellis.color(x, y, v_to_rgb())
-                else:
-                    trellis.color(x, y, OFF)
-            
-            elif k == 'page':
-                if PAGE == v:
-                    trellis.color(x, y, v_to_rgb())
-                else:
-                    trellis.color(x, y, OFF)
+            elif k == 'assign':
+                trellis.color(x, y, v_to_rgb(40))
+
+            elif 'control_number' in k:
+                trellis.color(x, y, v_to_rgb(2 * int(v)))
 
 
-def pad_preset(x, y):
-    global PAGE
-    global BANK
-    global HUE
-    global BRIGHTNESS
-    global PSET
-    global psets
-
-    k, v = preset_page(x, y, BANK)
-
-    if k == '*':          
-        # if a hue and brightness were just selected
-        if (HUE is not None) and (BRIGHTNESS is not None):
-            if (v in psets.keys()) and \
-                (HUE == psets[v][0]) and \
-                (BRIGHTNESS == 0):
-                # remove preset
-                _ = psets.pop(v)
-            elif BRIGHTNESS > 0:
-                psets[v] = (HUE, BRIGHTNESS)
-                
-            HUE = None
-            BRIGHTNESS = None
-
-        if v in psets.keys():
-            PSET = v
-            midi.send(ProgramChange(v))
-            print(f"pset (pc) --> {v}")
+def pad_grid(x, y):
+    global SELECT
+    k, v = grid(x, y)
         
-    elif k == 'hue':
-        HUE = v
-    
-    elif k == 'v':
-        BRIGHTNESS = v
-    
-    elif k == 'bank':
-        BANK = v
+    if ('track' in k) or (k == 'fx'):
+        SELECT = k + v
+        print(f"select --> {k + v}")
 
-    elif k == 'live':
-        PSET = 0
-        midi.send(ProgramChange(v))
-        print(f"pset (pc) --> {v}\n")
-        print(psets)
-    
-    elif k == 'page':
-        PAGE = v
-        print(f"page --> {v}")
+    # elif k == 'pset':
+    #     params[k] = v
+    #     midi.send(ProgramChange(v))
+    #     print(f"pset (pc) --> {v}\n")
+    #     print(params)
+
+    # else:
+    #     k_trios = ['drip', 'loop', 'routing']
+    #     if (k in k_trios) and (v == params[k]):
+    #         v = 2
+        
+    #     params[k] = v
+    #     cc = CC_MAP[k]
+    #     midi.send(ControlChange(cc, v))
+    #     print(f"{k} ({cc}) --> {v}")
 
 
 # -------------------------
 #         CALLBACK
 # -------------------------
 def pad(x, y):
-    '''
-    Activate the pad at (`x`, `y`).
-    '''
-    if PAGE == 'main':
-        pad_main(x, y)
+    pad_grid(x, y)
+    redraw_grid()
 
-    elif PAGE == 'fine':
-        pad_fine(x, y)
-    
-    elif PAGE == 'exp':
-        pad_exp(x, y)
 
-    elif PAGE == 'psets':
-        pad_preset(x, y)
-
-    if PAGE == 'main':
-        redraw_main()
-
-    elif PAGE == 'fine':
-        redraw_fine()
-    
-    elif PAGE == 'exp':
-        redraw_exp()
-
-    elif PAGE == 'psets':
-        redraw_preset()
-    
-
-def button(x, y, edge):
+def button(x, y, edge, light=True):
     '''
     Actions to take for each edge event on the grid
 
@@ -578,11 +337,18 @@ def button(x, y, edge):
     '''
     # Recently pressed
     if edge == NeoTrellis.EDGE_RISING:
+        if light:
+            trellis.color(x, y, v_to_rgb())
+
+        # TESTING
+        type_keys(f"row {y} column {x}")
+
         pad(x, y)
 
     # Recently released
     # elif edge == NeoTrellis.EDGE_FALLING:
-    #     trellis.color(x, y, OFF)
+    #     if light:
+    #         trellis.color(x, y, OFF)
 
     return None
 
@@ -598,22 +364,19 @@ def init():
             trellis.set_callback(x, y, button)
 
             # fanciness
-            trellis.color(x, y, v_to_rgb())
-            time.sleep(0.05)
-            trellis.color(x, y, OFF)
+            if y == x:
+                trellis.color(x, y, v_to_rgb())
+                time.sleep(0.05)
+                trellis.color(x, y, OFF)
 
-    redraw_main()
+    redraw_grid()
 
-# -------------------------
-#           INIT
-# -------------------------
-init()
-print("Output Channel:", midi.out_channel + 1)  # DAWs start at 1
-# print("Input Channels:", [c + 1 for c in midi.in_channel])
 
 # -------------------------
 #         RUNNING
 # -------------------------
+init()
+
 while True:
     trellis.sync()
     time.sleep(0.02)  # try commenting this out if things are slow
