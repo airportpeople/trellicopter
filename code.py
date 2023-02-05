@@ -96,7 +96,7 @@ KEY = {
 }
 
 # params
-SELECT = '1'
+SELECT = 'track1'
 CONTROL = '1'
 MACRO = None
 
@@ -247,23 +247,21 @@ def grid(x=None, y=None):
     '''
     If `x` and `y` are None (default), then return the main page key and value grids, respectively. Otherwise, return the information encapsulated in the main page at (`x`, `y`). The latter returns the (key, value) tuple.
     '''
-    g = [[f'track_{i}' for i in range(1, 5)] + ['fx'] + 
-            [f'control_number_{i}' for i in range(1, 4)],
-        ['gridx_1'] * 5 + [f'control_number_{i}' for i in range(4, 7)],
-        ['gridy_1'] * 5 + [f'control_number_{i}' for i in range(7, 10)],
-        ['gridx_2'] * 5 + [f'control_number_{i}' for i in range(10, 13)],
-        ['gridy_2'] * 5 + [f'control_number_{i}' for i in range(13, 16)],
-        ['enc_1'] * 5 + ['macro_1', 'macro_2', 'macro_3'],
-        ['enc_2'] * 5 + ['macro_.5', 'macro_-1', 'macro_clear'],
-        ['enc_3'] * 5 + ['random', 'grid_mode', 'assign']]
+    g = [[f'track {i}' for i in range(1, 5)] + ['fx '] + 
+            [f'control_number {i}' for i in range(1, 4)],
+        ['gridx 1'] * 5 + [f'control_number {i}' for i in range(4, 7)],
+        ['gridy 1'] * 5 + [f'control_number {i}' for i in range(7, 10)],
+        ['gridx 2'] * 5 + [f'control_number {i}' for i in range(10, 13)],
+        ['gridy 2'] * 5 + [f'control_number {i}' for i in range(13, 16)],
+        ['enc 1'] * 5 + ['macro 1', 'macro 2', 'macro 3'],
+        ['enc 2'] * 5 + ['macro .5', 'macro -1', 'macro clear'],
+        ['enc 3'] * 5 + ['random ', 'grid_mode ', 'assign ']]
     
     if x is None or y is None:
         return g
     else:
-        if '_' in g[y][x]:
-            return g[y][x].split('_')[0], g[y][x].split('_')[1]
-        else:
-            return g[y][x], ""
+        return g[y][x].split(' ')
+
 
 
 def redraw_grid():
@@ -283,8 +281,14 @@ def redraw_grid():
             elif k == 'assign':
                 trellis.color(x, y, v_to_rgb(40))
 
-            elif 'control_number' in k:
-                trellis.color(x, y, v_to_rgb(2 * int(v)))
+            elif k == 'control_number':
+                trellis.color(x, y, v_to_rgb(3))
+            
+            elif k == 'macro':
+                trellis.color(x, y, v_to_rgb(1, 'b'))
+
+            elif v == '':
+                trellis.color(x, y, v_to_rgb(1, 'w'))
 
 
 def pad_grid(x, y):
