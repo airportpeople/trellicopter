@@ -96,7 +96,7 @@ KEY = {
 
 # params
 SELECT = 'track1'
-CONTROL = '1'
+CONTROL = None
 CONTROLLER = None
 MACRO = None
 
@@ -276,6 +276,7 @@ def grid(x=None, y=None):
 
 def redraw_grid():
     global SELECT
+    global CONTROL
     global CONTROLLER
     global assignments
     
@@ -294,16 +295,20 @@ def redraw_grid():
                 trellis.color(x, y, v_to_rgb(2))
 
             elif k == 'control_number':
-                trellis.color(x, y, v_to_rgb(2))
+                if CONTROL == v:
+                    trellis.color(x, y, v_to_rgb(20))
+                else:
+                    trellis.color(x, y, v_to_rgb(2))
             
             elif (k == 'macro') and (v in '123'):
                 trellis.color(x, y, v_to_rgb(0.5, 'b'))
             
             elif k in ['gridx', 'gridy', 'enc']:
-                if x == assignments[k + v]:
+                if CONTROLLER == k + v + f'-{x}':
+                    trellis.color(x, y, v_to_rgb(20))
+                elif x == assignments[k + v]:
                     trellis.color(x, y, v_to_rgb(2))
-
-                elif CONTROLLER != k + v + f'-{x}':
+                else:
                     trellis.color(x, y, OFF)
             
             elif v == '':
@@ -312,6 +317,7 @@ def redraw_grid():
 
 def pad_grid(x, y):
     global SELECT
+    global CONTROL
     global CONTROLLER
     k, v = grid(x, y)
         
@@ -328,6 +334,16 @@ def pad_grid(x, y):
             CONTROLLER = k + v + f'-{x}'
             trellis.color(x, y, v_to_rgb(20))
             print(f"controller --> {k + v}-{x}")
+    
+    elif (x > 4) and (y < 5):
+        if CONTROL == v:
+            CONTROL = None
+            trellis.color(x, y, v_to_rgb(2))
+            print(f"control --> None")
+        else:
+            CONTROL = v
+            trellis.color(x, y, v_to_rgb(20))
+            print(f"control --> {v}")
 
 
 # -------------------------
