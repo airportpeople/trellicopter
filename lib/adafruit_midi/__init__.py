@@ -28,7 +28,7 @@ Implementation Notes
 
 from .midi_message import MIDIMessage
 
-__version__ = "1.4.2"
+__version__ = "1.4.14"
 __repo__ = "https://github.com/adafruit/Adafruit_CircuitPython_MIDI.git"
 
 
@@ -152,12 +152,15 @@ class MIDI:
             channel = self.out_channel
         if isinstance(msg, MIDIMessage):
             msg.channel = channel
-            data = msg.__bytes__()  # bytes(object) does not work in uPy
+            # bytes(object) does not work in uPy
+            data = msg.__bytes__()  # pylint: disable=unnecessary-dunder-call
         else:
             data = bytearray()
             for each_msg in msg:
                 each_msg.channel = channel
-                data.extend(each_msg.__bytes__())
+                data.extend(
+                    each_msg.__bytes__()  # pylint: disable=unnecessary-dunder-call
+                )
 
         self._send(data, len(data))
 

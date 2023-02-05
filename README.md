@@ -18,13 +18,15 @@ For development purposes, these are the steps to take with a new NeoTrellis grid
 
 ## Update and Install
 
-[Bootloader](https://learn.adafruit.com/adafruit-feather-m4-express-atsamd51/update-the-uf2-bootloader). You'll have to double tap the reset button (pretty quick-ish) to enter "boot mode". Load the most recent version of the bootloader, and let it reset to show the BOOT drive again.
+[Bootloader](https://learn.adafruit.com/adafruit-feather-m4-express-atsamd51/update-the-uf2-bootloader). Double tap the device's reset button (pretty quick-ish) to enter "boot mode". Load (drag and drop) the most recent version of the bootloader into the disk, and let it reset to show the BOOT drive again.
 
-[CIRCUITPY](https://learn.adafruit.com/welcome-to-circuitpython/installing-circuitpython#download-the-latest-version-2977908-4). Download the most recent version of CIRCUITPY for your chip (Feather M4, likely). Start the Bootloader (above), load the UF2 file into the BOOT drive, and let it install. You'll see the CIRCUITPY drive show up when it's done.
+[CIRCUITPY](https://learn.adafruit.com/welcome-to-circuitpython/installing-circuitpython#download-the-latest-version-2977908-4). Download the most recent version of CIRCUITPY for your chip (Feather M4 Express, likely). Start the Bootloader (above), then load the UF2 file into the BOOT drive, and let it install. You'll see the CIRCUITPY drive show up when it's done.
 
 ## Accessing the REPL Serial Console
 
 In here, you can view the output of your `code.py` file. To open the console, we follow [these](https://www.bggofurther.com/2017/08/connect-to-serialconsole-terminal-with-macos-using-screen/) instructions:
+
+*(One of the following should work.)*
 
 ```bash
 $ ls /dev*/usb*
@@ -33,11 +35,13 @@ $ ls /dev/tty*usb*
 > tty.usbserial (or something like it)
 ```
 
-Copy paste the last line, and run
+Copy (to paste) the output that works, and run
 
 ```bash
 screen /dev/tty.usbserial 9600,cs8,ixon
 ```
+
+*(I.e., everything in between `screen` and `9600` is in your copy/paste clipboard.)*
 
 To [leave](https://learn.adafruit.com/welcome-to-circuitpython/the-repl), press **Ctrl + D**. *Note: you may need to press **Ctrl + C** to stop whatever script is happening, if you like.*
 
@@ -45,9 +49,7 @@ To [leave](https://learn.adafruit.com/welcome-to-circuitpython/the-repl), press 
 
 **This repository is meant to emulate what is loaded on the trellicopter.**
 
-The current `code.py` file works to create a simple MIDI grid which sends MIDI on channel 1, and receives from channels 2, 3, and 4. When a MIDI message is received (within range), the respective button will light up.
-
-I like to have my code edited in PyCharm. I'll have the IDE up along with an open REPL console (above). I make updates to the trellicopter repo, which is meant to *emulate* what is on the Feather M4. Once I feel good about the code, I'll copy-paste the `code.py` file, and place it into the *CIRCUITPY* drive.
+I like to have my code edited in VS Code. I'll have the IDE up along with an open REPL console (above). I make updates to the trellicopter repo, which is meant to *emulate* what is on the Feather M4. Once I feel good about the code, I'll copy-paste the `code.py` file, and place it into the *CIRCUITPY* drive.
 
 **Step 1:** Clone this repository (the *main* branch), and the [Adafruit Blinka](https://github.com/adafruit/Adafruit_Blinka) repo.
 

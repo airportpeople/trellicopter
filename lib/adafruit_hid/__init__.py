@@ -18,16 +18,25 @@ Implementation Notes
 """
 
 # imports
+from __future__ import annotations
 
-__version__ = "5.1.0"
+try:
+    from typing import Sequence
+    import usb_hid
+except ImportError:
+    pass
+
+__version__ = "5.3.3"
 __repo__ = "https://github.com/adafruit/Adafruit_CircuitPython_HID.git"
 
 
-def find_device(devices, *, usage_page, usage):
-    """Search through the provided list of devices to find the one with the matching usage_page and
-    usage."""
+def find_device(
+    devices: Sequence[usb_hid.Device], *, usage_page: int, usage: int
+) -> usb_hid.Device:
+    """Search through the provided sequence of devices to find the one with the matching
+    usage_page and usage."""
     if hasattr(devices, "send_report"):
-        devices = [devices]
+        devices = [devices]  # type: ignore
     for device in devices:
         if (
             device.usage_page == usage_page

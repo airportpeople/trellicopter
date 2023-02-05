@@ -29,12 +29,9 @@ Implementation Notes
 # compatible classes so we won't bother with some lints until then.
 # pylint: disable=missing-docstring,invalid-name,too-many-public-methods,no-name-in-module
 
+import struct
 import time
 
-try:
-    import struct
-except ImportError:
-    import ustruct as struct
 try:
     from micropython import const
 except ImportError:
@@ -45,7 +42,7 @@ except ImportError:
 
 from adafruit_bus_device.i2c_device import I2CDevice
 
-__version__ = "1.9.2"
+__version__ = "1.11.7"
 __repo__ = "https://github.com/adafruit/Adafruit_CircuitPython_seesaw.git"
 
 _STATUS_BASE = const(0x00)
@@ -107,7 +104,8 @@ _NEOPIXEL_SHOW = const(0x05)
 
 _TOUCH_CHANNEL_OFFSET = const(0x10)
 
-_HW_ID_CODE = const(0x55)
+_SAMD09_HW_ID_CODE = const(0x55)
+_ATTINY8X7_HW_ID_CODE = const(0x87)
 _EEPROM_I2C_ADDR = const(0x3F)
 
 _ENCODER_STATUS = const(0x00)
@@ -126,33 +124,30 @@ class Seesaw:
 
     :param ~busio.I2C i2c_bus: Bus the SeeSaw is connected to
     :param int addr: I2C address of the SeeSaw device
-    :param ~digitalio.DigitalInOut drdy: Pin connected to SeeSaw's 'ready' output"""
+    :param ~digitalio.DigitalInOut drdy: Pin connected to SeeSaw's 'ready' output
+    :param bool reset: Whether to do a software reset on init"""
 
     INPUT = const(0x00)
     OUTPUT = const(0x01)
     INPUT_PULLUP = const(0x02)
     INPUT_PULLDOWN = const(0x03)
 
-    def __init__(self, i2c_bus, addr=0x49, drdy=None):
+    def __init__(self, i2c_bus, addr=0x49, drdy=None, reset=True):
         self._drdy = drdy
         if drdy is not None:
             drdy.switch_to_input()
 
         self.i2c_device = I2CDevice(i2c_bus, addr)
-        self.sw_reset()
+        if reset:
+            self.sw_reset()
 
-    def sw_reset(self):
-        """Trigger a software reset of the SeeSaw chip"""
-        self.write8(_STATUS_BASE, _STATUS_SWRST, 0xFF)
-        time.sleep(0.500)
+        self.chip_id = self.read8(_STATUS_BASE, _STATUS_HW_ID)
 
-        chip_id = self.read8(_STATUS_BASE, _STATUS_HW_ID)
-
-        if chip_id != _HW_ID_CODE:
+        if self.chip_id not in (_ATTINY8X7_HW_ID_CODE, _SAMD09_HW_ID_CODE):
             raise RuntimeError(
                 "Seesaw hardware ID returned (0x{:x}) is not "
-                "correct! Expected 0x{:x}. Please check your wiring.".format(
-                    chip_id, _HW_ID_CODE
+                "correct! Expected 0x{:x} or 0x{:x}. Please check your wiring.".format(
+                    self.chip_id, _SAMD09_HW_ID_CODE, _ATTINY8X7_HW_ID_CODE
                 )
             )
 
@@ -166,11 +161,20 @@ class Seesaw:
             from adafruit_seesaw.robohat import MM1_Pinmap
 
             self.pin_mapping = MM1_Pinmap
-        else:
+        elif self.chip_id == _SAMD09_HW_ID_CODE:
             from adafruit_seesaw.samd09 import SAMD09_Pinmap
 
             self.pin_mapping = SAMD09_Pinmap
+        elif self.chip_id == _ATTINY8X7_HW_ID_CODE:
+            from adafruit_seesaw.attiny8x7 import ATtiny8x7_Pinmap
+
+            self.pin_mapping = ATtiny8x7_Pinmap
         # pylint: enable=import-outside-toplevel
+
+    def sw_reset(self, post_reset_delay=0.5):
+        """Trigger a software reset of the SeeSaw chip"""
+        self.write8(_STATUS_BASE, _STATUS_SWRST, 0xFF)
+        time.sleep(post_reset_delay)
 
     def get_options(self):
         """Retrieve the 'options' word from the SeeSaw board"""
@@ -210,8 +214,11 @@ class Seesaw:
         """Get the values of all the pins on the 'A' port as a bitmask"""
         buf = bytearray(4)
         self.read(_GPIO_BASE, _GPIO_BULK, buf, delay=delay)
-        buf[0] = buf[0] & 0x3F
-        ret = struct.unpack(">I", buf)[0]
+        try:
+            ret = struct.unpack(">I", buf)[0]
+        except OverflowError:
+            buf[0] = buf[0] & 0x3F
+            ret = struct.unpack(">I", buf)[0]
         return ret & pins
 
     def digital_read_bulk_b(self, pins, delay=0.008):
@@ -235,19 +242,19 @@ class Seesaw:
         self.read(_GPIO_BASE, _GPIO_INTFLAG, buf, delay=delay)
         return struct.unpack(">I", buf)[0]
 
-    def analog_read(self, pin):
+    def analog_read(self, pin, delay=0.008):
         """Read the value of an analog pin by number"""
         buf = bytearray(2)
         if pin not in self.pin_mapping.analog_pins:
             raise ValueError("Invalid ADC pin")
 
-        self.read(
-            _ADC_BASE,
-            _ADC_CHANNEL_OFFSET + self.pin_mapping.analog_pins.index(pin),
-            buf,
-        )
+        if self.chip_id == _ATTINY8X7_HW_ID_CODE:
+            offset = pin
+        elif self.chip_id == _SAMD09_HW_ID_CODE:
+            offset = self.pin_mapping.analog_pins.index(pin)
+
+        self.read(_ADC_BASE, _ADC_CHANNEL_OFFSET + offset, buf, delay)
         ret = struct.unpack(">H", buf)[0]
-        time.sleep(0.001)
         return ret
 
     def touch_read(self, pin):
@@ -334,20 +341,19 @@ class Seesaw:
 
     def analog_write(self, pin, value):
         """Set the value of an analog output by number"""
-        pin_found = False
-        if self.pin_mapping.pwm_width == 16:
-            if pin in self.pin_mapping.pwm_pins:
-                pin_found = True
-                cmd = bytearray(
-                    [self.pin_mapping.pwm_pins.index(pin), (value >> 8), value & 0xFF]
-                )
-        else:
-            if pin in self.pin_mapping.pwm_pins:
-                pin_found = True
-                cmd = bytearray([self.pin_mapping.pwm_pins.index(pin), value])
-
-        if pin_found is False:
+        if pin not in self.pin_mapping.pwm_pins:
             raise ValueError("Invalid PWM pin")
+
+        if self.chip_id == _ATTINY8X7_HW_ID_CODE:
+            offset = pin
+        elif self.chip_id == _SAMD09_HW_ID_CODE:
+            offset = self.pin_mapping.pwm_pins.index(pin)
+
+        if self.pin_mapping.pwm_width == 16:
+            cmd = bytearray([offset, (value >> 8), value & 0xFF])
+        else:
+            cmd = bytearray([offset, value])
+
         self.write(_TIMER_BASE, _TIMER_PWM, cmd)
         time.sleep(0.001)
 

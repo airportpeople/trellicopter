@@ -22,7 +22,7 @@ Implementation Notes
 
 """
 
-__version__ = "1.4.2"
+__version__ = "1.4.14"
 __repo__ = "https://github.com/adafruit/Adafruit_CircuitPython_MIDI.git"
 
 # From C3 - A and B are above G
@@ -111,7 +111,7 @@ class MIDIMessage:
     @channel.setter
     def channel(self, channel):
         if channel is not None and not 0 <= channel <= 15:
-            raise "Channel must be 0-15 or None"
+            raise ValueError("Channel must be 0-15 or None")
         self._channel = channel
 
     @classmethod
@@ -306,7 +306,7 @@ class MIDIUnknownEvent(MIDIMessage):
 class MIDIBadEvent(MIDIMessage):
     """A bad MIDI message, one that could not be parsed/constructed.
 
-    :param list data: The MIDI status including any embedded channel number
+    :param list msg_bytes: The MIDI status including any embedded channel number
         and associated subsequent data bytes.
     :param Exception exception: The exception used to store the repr() text representation.
 

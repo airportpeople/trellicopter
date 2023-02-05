@@ -9,7 +9,20 @@
 ====================================================
 """
 
-__version__ = "5.0.6"
+import time
+
+try:
+    from typing import Optional, Type
+    from types import TracebackType
+
+    # Used only for type annotations.
+    from busio import SPI
+    from digitalio import DigitalInOut
+except ImportError:
+    pass
+
+
+__version__ = "5.2.3"
 __repo__ = "https://github.com/adafruit/Adafruit_CircuitPython_BusDevice.git"
 
 
@@ -21,6 +34,11 @@ class SPIDevice:
     :param ~busio.SPI spi: The SPI bus the device is on
     :param ~digitalio.DigitalInOut chip_select: The chip select pin object that implements the
         DigitalInOut API.
+    :param bool cs_active_value: Set to true if your device requires CS to be active high.
+        Defaults to false.
+    :param int baudrate: The SPI baudrate
+    :param int polarity: The SPI polarity
+    :param int phase: The SPI phase
     :param int extra_clocks: The minimum number of clock cycles to cycle the bus after CS is high.
         (Used for SD cards.)
 
@@ -52,36 +70,43 @@ class SPIDevice:
 
     def __init__(
         self,
-        spi,
-        chip_select=None,
+        spi: SPI,
+        chip_select: Optional[DigitalInOut] = None,
         *,
-        baudrate=100000,
-        polarity=0,
-        phase=0,
-        extra_clocks=0
-    ):
+        cs_active_value: bool = False,
+        baudrate: int = 100000,
+        polarity: int = 0,
+        phase: int = 0,
+        extra_clocks: int = 0
+    ) -> None:
         self.spi = spi
         self.baudrate = baudrate
         self.polarity = polarity
         self.phase = phase
         self.extra_clocks = extra_clocks
         self.chip_select = chip_select
+        self.cs_active_value = cs_active_value
         if self.chip_select:
             self.chip_select.switch_to_output(value=True)
 
-    def __enter__(self):
+    def __enter__(self) -> SPI:
         while not self.spi.try_lock():
-            pass
+            time.sleep(0)
         self.spi.configure(
             baudrate=self.baudrate, polarity=self.polarity, phase=self.phase
         )
         if self.chip_select:
-            self.chip_select.value = False
+            self.chip_select.value = self.cs_active_value
         return self.spi
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
+    def __exit__(
+        self,
+        exc_type: Optional[Type[type]],
+        exc_val: Optional[BaseException],
+        exc_tb: Optional[TracebackType],
+    ) -> bool:
         if self.chip_select:
-            self.chip_select.value = True
+            self.chip_select.value = not self.cs_active_value
         if self.extra_clocks > 0:
             buf = bytearray(1)
             buf[0] = 0xFF

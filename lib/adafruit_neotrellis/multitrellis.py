@@ -1,15 +1,36 @@
-# SPDX-FileCopyrightText: 2018 Dean Miller for Adafruit Industries
+# SPDX-FileCopyrightText: 2021 Dean Miller for Adafruit Industries
 #
 # SPDX-License-Identifier: MIT
 
 """
-interface for connecting together multiple NeoTrellis boards.
+``adafruit_multitrellis``
+====================================================
+
+A CircuitPython driver class for interfacing clusters of 4x4 NeoTrellis with
+elastomer buttons and NeoPixel RGB LEDs.
+
+* Author(s): Dean Miller, JG for CedarGroveMakerStudios
+
+Implementation Notes
+--------------------
+
+**Hardware:**
+
+* 'NeoTrellis RGB Driver PCB for 4x4 Keypad, PID: 3954
+  <https://www.adafruit.com/product/3954>'
+
+**Software and Dependencies:**
+
+* Adafruit CircuitPython firmware for the supported boards:
+  https://github.com/adafruit/circuitpython/releases
+
+* Adafruit Seesaw CircuitPython library
+  https://github.com/adafruit/Adafruit_CircuitPython_seesaw/releases
 """
 
-# imports
-
-__version__ = "1.1.5"
+__version__ = "1.3.2"
 __repo__ = "https://github.com/adafruit/Adafruit_CircuitPython_neotrellis.git"
+
 
 from time import sleep
 from micropython import const
@@ -78,3 +99,23 @@ class MultiTrellis:
                             y = int(evt.number / 4) + _n * 4
                             x = int(evt.number % 4) + _m * 4
                             _t.callbacks[evt.number](x, y, evt.edge)
+
+    def show(self):
+        """Show the colors on the NeoPixels"""
+        for _n in range(self._rows):
+            for _m in range(self._cols):
+                self._trelli[_n][_m].show()
+
+    @property
+    def brightness(self):
+        """The NeoPixel brightness level of all clustered NeoTrellis boards."""
+        return self._brightness
+
+    @brightness.setter
+    def brightness(self, new_brightness):
+        """Select a NeoPixel brightness level for all all clustered boards. A
+        valid brightness value is in the range of 0.0 to 1.0."""
+        self._brightness = new_brightness
+        for _r in range(self._rows):
+            for _c in range(self._cols):
+                self._trelli[_r][_c].brightness = self._brightness

@@ -18,7 +18,7 @@ Implementation Notes
 
 from .midi_message import MIDIMessage, note_parser
 
-__version__ = "1.4.2"
+__version__ = "1.4.14"
 __repo__ = "https://github.com/adafruit/Adafruit_CircuitPython_MIDI.git"
 
 
@@ -36,18 +36,20 @@ class NoteOff(MIDIMessage):  # pylint: disable=duplicate-code
     LENGTH = 3
 
     def __init__(self, note, velocity=0, *, channel=None):
-        self._note = note_parser(note)
-        self._velocity = velocity
+        self.note = note_parser(note)
+        """Key, either int (0-127) or string that will be turned off """
+        self.velocity = velocity
+        """Release velocity, int (0-127) """
         super().__init__(channel=channel)
-        if not 0 <= self._note <= 127 or not 0 <= self._velocity <= 127:
+        if not 0 <= self.note <= 127 or not 0 <= self.velocity <= 127:
             self._raise_valueerror_oor()
 
     def __bytes__(self):
         return bytes(
             [
                 self._STATUS | (self.channel & self.CHANNELMASK),
-                self._note,
-                self._velocity,
+                self.note,
+                self.velocity,
             ]
         )
 

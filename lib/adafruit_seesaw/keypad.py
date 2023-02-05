@@ -19,7 +19,7 @@ except ImportError:
 
 from adafruit_seesaw.seesaw import Seesaw
 
-__version__ = "1.9.2"
+__version__ = "1.11.7"
 __repo__ = "https://github.com/adafruit/Adafruit_CircuitPython_seesaw.git"
 
 _KEYPAD_BASE = const(0x10)
