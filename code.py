@@ -348,8 +348,13 @@ def pad_grid(x, y):
 
     # controller pad section
     elif (x < 5) and (y > 0):
+        # macro is already selected
+        if MACRO is not None:
+            trellis.color(x, y, OFF)
+            print(f"controller error --> macro selected")
+
         # controller is already selected for a track/fx
-        if CONTROLLER == k + v + f'-{x}':
+        elif CONTROLLER == k + v + f'-{x}':
             CONTROLLER = None
             # it has an assignment
             if x == assignments[k + v]:
@@ -378,15 +383,24 @@ def pad_grid(x, y):
 
     # macro section
     elif k == 'macro':
-        if MACRO == v:
+        # controller is already selected
+        if CONTROLLER is not None:
+            trellis.color(x, y, v_to_rgb(0.5, 'b'))
+            print(f"macro error --> controller selected")
+
+        # macro already selected
+        elif MACRO == v:
             MACRO = None
             trellis.color(x, y, v_to_rgb(0.5, 'b'))
             print(f"macro --> None")
+
+        # macro not selected yet
         elif v in '123':
             MACRO = v
             trellis.color(x, y, v_to_rgb(2, 'b'))
             print(f"macro --> {v}")
 
+    # macro_mult section
     elif k == 'macro_mult':
         # selected macro_mult only one (already) activated
         if MACRO_MULT / float(v) == 1:
@@ -405,6 +419,10 @@ def pad_grid(x, y):
             
         print(f"macro_mult --> {MACRO_MULT}")
 
+    # elif k == 'assign':
+    #     # assigning control to controller
+    #     if None not in [CONTROL, CONTROLLER]:
+    #         pass
 
 # -------------------------
 #         CALLBACK
