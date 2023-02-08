@@ -98,7 +98,8 @@ KEY = {
 SELECT = None
 CONTROL = None
 CONTROLLER = None
-MACRO = 0
+MACRO = None
+MACRO_MULT = 1
 
 assignments = {
     'gridx1': None,
@@ -116,7 +117,7 @@ keyboard = Keyboard(usb_hid.devices)
 
 def type_keys(characters, press=False, wait=0.04):
     """
-    Type the keys in `characters` in sequence, with `wait` seconds in between
+    Type the keys in `characters` in sequence, with `wait` seconds in between.
 
     Parameters
     ----------
@@ -263,9 +264,9 @@ def grid(x=None, y=None):
         ['gridy 1'] * 5 + [f'control_number {i}' for i in range(7, 10)],
         ['gridx 2'] * 5 + [f'control_number {i}' for i in range(10, 13)],
         ['gridy 2'] * 5 + [f'control_number {i}' for i in range(13, 16)],
-        ['enc 1'] * 5 + ['macro 1', 'macro .5', 'random '],
-        ['enc 2'] * 5 + ['macro 2', 'macro -1', 'grid_mode '],
-        ['enc 3'] * 5 + ['macro 3', 'macro clear', 'assign ']]
+        ['enc 1'] * 5 + ['macro 1', 'macro_mult .5', 'random '],
+        ['enc 2'] * 5 + ['macro 2', 'macro_mult -1', 'grid_mode '],
+        ['enc 3'] * 5 + ['macro 3', 'macro_clear ', 'assign ']]
     
     if x is None or y is None:
         return g
@@ -306,6 +307,17 @@ def redraw_grid():
                     trellis.color(x, y, v_to_rgb(2, 'b'))
                 else:
                     trellis.color(x, y, v_to_rgb(0.5, 'b'))
+
+            elif k == 'macro_mult':
+                # selected macro_mult only one activated
+                if MACRO_MULT / float(v) == 1:
+                    trellis.color(x, y, v_to_rgb(2, 'b'))
+                # both macro_mult values activated
+                elif MACRO_MULT == -0.5:
+                    trellis.color(x, y, v_to_rgb(2, 'b'))
+                # this macro_mult is not activated
+                else:
+                    trellis.color(x, y, OFF)
             
             elif k in ['gridx', 'gridy', 'enc']:
                 if CONTROLLER == k + v + f'-{x}':
@@ -315,7 +327,7 @@ def redraw_grid():
                 else:
                     trellis.color(x, y, OFF)
             
-            elif v == '':
+            elif k != 'macro_clear':
                 trellis.color(x, y, v_to_rgb(1, 'w'))
    
 
@@ -324,6 +336,7 @@ def pad_grid(x, y):
     global CONTROL
     global CONTROLLER
     global MACRO
+    global MACRO_MULT
     k, v = grid(x, y)
         
     if k in ['track', 'fx']:
@@ -352,13 +365,32 @@ def pad_grid(x, y):
 
     elif k == 'macro':
         if MACRO == v:
-            MACRO = 0
+            MACRO = None
             trellis.color(x, y, v_to_rgb(0.5, 'b'))
-            print(f"macro --> 0")
+            print(f"macro --> None")
         elif v in '123':
             MACRO = v
             trellis.color(x, y, v_to_rgb(2, 'b'))
             print(f"macro --> {v}")
+
+    elif k == 'macro_mult':
+        # selected macro_mult only one (already) activated
+        if MACRO_MULT / float(v) == 1:
+            MACRO_MULT /= float(v)
+            trellis.color(x, y, OFF)
+
+        # both macro_mult values (already) activated
+        elif MACRO_MULT == -0.5:
+            MACRO_MULT /= float(v)
+            trellis.color(x, y, OFF)
+
+        # this macro_mult is not yet activated
+        else:
+            MACRO_MULT *= float(v)
+            trellis.color(x, y, v_to_rgb(2, 'b'))
+            
+        print(f"macro_mult --> {MACRO_MULT}")
+
 
 # -------------------------
 #         CALLBACK
