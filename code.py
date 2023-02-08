@@ -320,10 +320,13 @@ def redraw_grid():
                     trellis.color(x, y, OFF)
             
             elif k in ['gridx', 'gridy', 'enc']:
+                # controller selected for a given track/fx
                 if CONTROLLER == k + v + f'-{x}':
                     trellis.color(x, y, v_to_rgb(20))
+                # controller already assigned to a track/fx
                 elif x == assignments[k + v]:
                     trellis.color(x, y, v_to_rgb(2))
+                # controller not assigned or selected
                 else:
                     trellis.color(x, y, OFF)
             
@@ -343,16 +346,26 @@ def pad_grid(x, y):
         SELECT = k + v
         print(f"select --> {k + v}")
 
+    # controller pad section
     elif (x < 5) and (y > 0):
+        # controller is already selected for a track/fx
         if CONTROLLER == k + v + f'-{x}':
             CONTROLLER = None
-            trellis.color(x, y, OFF)
+            # it has an assignment
+            if x == assignments[k + v]:
+                trellis.color(x, y, v_to_rgb(2))
+            # it doesn't have an assignment yet
+            else:
+                trellis.color(x, y, OFF)
             print(f"controller --> None")
+        
+        # controller not selected yet
         else:
             CONTROLLER = k + v + f'-{x}'
             trellis.color(x, y, v_to_rgb(20))
             print(f"controller --> {k + v}-{x}")
     
+    # control number section
     elif (x > 4) and (y < 5):
         if CONTROL == v:
             CONTROL = None
@@ -363,6 +376,7 @@ def pad_grid(x, y):
             trellis.color(x, y, v_to_rgb(20))
             print(f"control --> {v}")
 
+    # macro section
     elif k == 'macro':
         if MACRO == v:
             MACRO = None
