@@ -100,7 +100,9 @@ CONTROL = None
 CONTROLLER = None
 MACRO = None
 MACRO_MULT = 1
+MACRO_CLEAR = False
 
+# for each controller (y = row) assign a control 
 assignments = {
     'gridx1': None,
     'gridy1': None,
@@ -109,6 +111,13 @@ assignments = {
     'enc1': None,
     'enc2': None,
     'enc3': None
+}
+
+# number of controls for each track/fx assigned to each encoder (macro)
+macros = {
+    '1': [0, 0, 0, 0, 0],
+    '2': [0, 0, 0, 0, 0],
+    '3': [0, 0, 0, 0, 0]
 }
 
 # Tell the device to act like a keyboard.
@@ -274,13 +283,15 @@ def grid(x=None, y=None):
         return g[y][x].split(' ')
 
 
-
 def redraw_grid():
     global SELECT
     global CONTROL
     global CONTROLLER
     global MACRO
+    global MACRO_MULT
+    global MACRO_CLEAR
     global assignments
+    global macros
     
     for y in range(8):
         for x in range(8):
@@ -288,7 +299,7 @@ def redraw_grid():
 
             # top track/fx row
             if k in ['track', 'fx']:
-                if k + v == SELECT:
+                if x == SELECT:
                     trellis.color(x, y, v_to_rgb(40))
                 else:
                     trellis.color(x, y, v_to_rgb(7))
@@ -323,6 +334,9 @@ def redraw_grid():
                 # controller selected for a given track/fx
                 if CONTROLLER == k + v + f'-{x}':
                     trellis.color(x, y, v_to_rgb(20))
+                # controller has macro assigned to it
+                elif k == 'enc' and macros[v][x] > 0:
+                    trellis.color(x, y, v_to_rgb(2, 'b'))
                 # controller already assigned to a track/fx
                 elif x == assignments[k + v]:
                     trellis.color(x, y, v_to_rgb(2))
@@ -330,6 +344,12 @@ def redraw_grid():
                 else:
                     trellis.color(x, y, OFF)
             
+            elif k == 'macro_clear':
+                if MACRO_CLEAR:
+                    trellis.color(x, y, v_to_rgb(1, 'r'))
+                else:
+                    trellis.color(x, y, OFF)
+
             elif k != 'macro_clear':
                 trellis.color(x, y, v_to_rgb(1, 'w'))
    
@@ -340,11 +360,16 @@ def pad_grid(x, y):
     global CONTROLLER
     global MACRO
     global MACRO_MULT
-    k, v = grid(x, y)
+    global MACRO_CLEAR
+    global assignments
+    global macros
+
+    g = grid()
+    k, v = g[y][x].split(' ')
         
     if k in ['track', 'fx']:
-        SELECT = k + v
-        print(f"select --> {k + v}")
+        SELECT = x
+        print(f"select --> {x}")
 
     # controller pad section
     elif (x < 5) and (y > 0):
@@ -415,14 +440,58 @@ def pad_grid(x, y):
         # this macro_mult is not yet activated
         else:
             MACRO_MULT *= float(v)
+            MACRO_CLEAR = False  # macro_mult voids macro_clear
             trellis.color(x, y, v_to_rgb(2, 'b'))
             
-        print(f"macro_mult --> {MACRO_MULT}")
+        print(f"macro_mult --> {MACRO_MULT} (no macro_clear)")
 
-    # elif k == 'assign':
-    #     # assigning control to controller
-    #     if None not in [CONTROL, CONTROLLER]:
-    #         pass
+    elif k == 'macro_clear':
+        if MACRO_CLEAR:
+            MACRO_CLEAR = False
+            trellis.color(x, y, OFF)
+
+        else:
+            MACRO_CLEAR = True
+            MACRO_MULT = 1  # macro_clear voids macro_mult
+            trellis.color(x, y, v_to_rgb(1, 'r'))
+
+        print(f'macro_clear --> {MACRO_CLEAR} (macro_mult = 1)')
+
+    elif k == 'assign':
+        # assigning control to controller
+        if None not in [CONTROL, CONTROLLER]:
+            a = CONTROLLER.find('-')
+            # assign given SELECT value (e.g., 1 for track2) to controller
+            assignments[CONTROLLER[:a]] = int(CONTROLLER[a+1])
+            trellis.color(x, y, v_to_rgb(40))
+            print(f"control {CONTROL} for track/fx {x} --> {CONTROLLER}")
+            CONTROL = None
+            CONTROLLER = None
+            print(":: assignments ::")
+            for k_ in ["".join(g[i][0].split(' ')) for i in range(1, 8)]:
+                print(f"{k_:<9}{assignments[k_]}")
+
+        # clear all assignments for a macro
+        elif MACRO is not None and MACRO_CLEAR:
+            macros[MACRO] = [0, 0, 0, 0, 0]
+            trellis.color(x, y, v_to_rgb(40))
+            print(f"macro {MACRO} cleared (unselect pads)")
+            MACRO = None
+            MACRO_CLEAR = False
+            CONTROL = None
+            CONTROLLER = None
+
+        # assigning macro to controller (for selected track)
+        elif None not in [SELECT, CONTROL, MACRO]:
+            macros[MACRO][SELECT] += 1
+            trellis.color(x, y, v_to_rgb(40))
+            print(f"control {CONTROL} for track/fx {x} --> {MACRO}")
+            CONTROL = None
+            MACRO = None
+            print(":: macros ::")
+            for i in range(1, 4):
+                print(f'enc {i}', macros[str(i)])
+
 
 # -------------------------
 #         CALLBACK
