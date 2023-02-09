@@ -101,6 +101,9 @@ CONTROLLER = None
 MACRO = None
 MACRO_MULT = 1
 MACRO_CLEAR = False
+RANDOM = False
+GRID_MODE = 1
+N_GRID_MODES = 2
 
 # for each controller (y = row) assign a control 
 assignments = {
@@ -273,6 +276,7 @@ colors = {
     'macro': v_to_rgb(1, 'b'),
     'assignment': v_to_rgb(2),
     'mode': v_to_rgb(1, 'w'),
+    'mode_set': v_to_rgb(7, 'w'),
     'assign_off': v_to_rgb(2),
     'assign_on': v_to_rgb(40)
 }
@@ -307,6 +311,7 @@ def redraw_grid():
     global MACRO
     global MACRO_MULT
     global MACRO_CLEAR
+    global RANDOM
     global assignments
     global colors
     global macros
@@ -331,7 +336,7 @@ def redraw_grid():
                 else:
                     trellis.color(x, y, colors['control_off'])
             
-            elif (k == 'macro') and (v in '123'):
+            elif (k == 'macro'):
                 if MACRO == v:
                     trellis.color(x, y, colors['macro_on'])
                 else:
@@ -368,8 +373,13 @@ def redraw_grid():
                 else:
                     trellis.color(x, y, OFF)
 
-            # random and grid_mode
-            elif k != 'macro_clear':
+            elif k == 'random':
+                if RANDOM:
+                    trellis.color(x, y, colors['mode_set'])
+                else:
+                    trellis.color(x, y, colors['mode'])
+
+            elif k == 'grid_mode':
                 trellis.color(x, y, colors['mode'])
    
 
@@ -377,9 +387,12 @@ def pad_grid(x, y):
     global SELECT
     global CONTROL
     global CONTROLLER
+    global GRID_MODE
+    global N_GRID_MODES
     global MACRO
     global MACRO_MULT
     global MACRO_CLEAR
+    global RANDOM
     global assignments
     global colors
     global macros
@@ -477,14 +490,30 @@ def pad_grid(x, y):
 
         print(f'macro_clear --> {MACRO_CLEAR} (macro_mult = 1)')
 
+    elif k == 'random':
+        # already selected (de-select)
+        if RANDOM:
+            RANDOM = False
+            trellis.color(x, y, colors['mode'])
+        else:
+            RANDOM = True
+            trellis.color(x, y, colors['mode_set'])
+
+        print(f"random --> {RANDOM}")
+
+    elif k == 'grid_mode':
+        GRID_MODE = GRID_MODE % N_GRID_MODES + 1
+        trellis.color(x, y, colors['mode_set'])  # temporary light
+        print(f'grid_mode --> {GRID_MODE}')
+
     elif k == 'assign':
         # assigning control to controller
         if None not in [CONTROL, CONTROLLER]:
             a = CONTROLLER.find('-')
             # assign given SELECT value (e.g., 1 for track2) to controller
             assignments[CONTROLLER[:a]] = int(CONTROLLER[a+1])
-            trellis.color(x, y, colors['assign_on'])
-            print(f"control {CONTROL} for track/fx {x} --> {CONTROLLER}")
+            trellis.color(x, y, colors['assign_on'])  # temporary light
+            print(f"control {CONTROL} --> {CONTROLLER}")
             CONTROL = None
             CONTROLLER = None
             print(":: assignments ::")
@@ -505,7 +534,7 @@ def pad_grid(x, y):
         elif None not in [SELECT, CONTROL, MACRO]:
             macros[MACRO][SELECT] += 1
             trellis.color(x, y, colors['assign_on'])
-            print(f"control {CONTROL} for track/fx {x} --> {MACRO}")
+            print(f"control {CONTROL} for track/fx {SELECT} --> {MACRO}")
             CONTROL = None
             MACRO = None
             print(":: macros ::")
