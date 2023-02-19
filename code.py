@@ -540,7 +540,8 @@ def pad_grid(x, y):
             CONTROLLER = None
 
         # assigning macro to controller (for selected track)
-        elif None not in [SELECT, CONTROL, MACRO]:
+        elif (None not in [SELECT, CONTROL, MACRO]) and \
+            (int(CONTROL) <= MAX_CONTROLS[SELECT]):
             macros[MACRO][SELECT] += 1
             trellis.color(x, y, colors['assign_on'])
             print(f"control {CONTROL} for track/fx {SELECT} --> {MACRO}")
@@ -553,7 +554,8 @@ def pad_grid(x, y):
                 print(f'enc {i}', macros[str(i)])
 
         # assign random value to a control for SELECTed track/fx
-        elif None not in [SELECT, CONTROL] and RANDOM:
+        elif (None not in [SELECT, CONTROL]) and RANDOM and \
+            (int(CONTROL) <= MAX_CONTROLS[SELECT]):
             trellis.color(x, y, colors['assign_on'])
             print(f"random control {CONTROL} to track/fx {SELECT}")
             CONTROL = None
