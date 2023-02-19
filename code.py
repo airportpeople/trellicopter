@@ -262,6 +262,14 @@ def v_to_rgb(v=30, hue='o'):
 
     return int(r), int(g), int(b)
 
+# -------------------------
+#       SILOS CONFIG
+# -------------------------
+
+# max control numbers for:
+#             *track*     *fx*
+MAX_CONTROLS = [13] * 4 + [11]
+
 # color levels
 colors = {
     'select_off': v_to_rgb(7),
@@ -507,11 +515,11 @@ def pad_grid(x, y):
         print(f'grid_mode --> {GRID_MODE}')
 
     elif k == 'assign':
-        # assigning control to controller
-        if None not in [CONTROL, CONTROLLER]:
-            a = CONTROLLER.find('-')
+        # assigning control to controller (if available)
+        if (None not in [CONTROL, CONTROLLER]) and \
+            (int(CONTROL) <= MAX_CONTROLS[int(CONTROLLER[-1])]):
             # assign given SELECT value (e.g., 1 for track2) to controller
-            assignments[CONTROLLER[:a]] = int(CONTROLLER[a+1])
+            assignments[CONTROLLER[:-2]] = int(CONTROLLER[-1])
             trellis.color(x, y, colors['assign_on'])  # temporary light
             print(f"control {CONTROL} --> {CONTROLLER}")
             CONTROL = None
